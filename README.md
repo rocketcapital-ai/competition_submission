@@ -8,10 +8,10 @@ Python Version Requirement: >= 3.9.2
 
 Please install the following external modules.
 - [pip install base58](https://pypi.org/project/base58/)
-- [pip install pycrypto](https://pypi.org/project/pycrypto/)
 - [pip install PyYAML](https://pypi.org/project/PyYAML/)
 - [pip install requests](https://pypi.org/project/requests/)
 - [pip install web3](https://pypi.org/project/web3/)
+- [pip install pandas](https://pypi.org/project/pandas/) (in case you don't already have pandas installed)
 
 In the first code cell of `quickstart.ipynb`, you will need to fill in 3 fields.
 1. `jwt`. This is your personal [pinata](https://pinata.cloud) access key.
