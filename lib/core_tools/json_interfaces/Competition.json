@@ -1,11 +1,6 @@
 {
   "abi": [
     {
-      "inputs": [],
-      "stateMutability": "nonpayable",
-      "type": "constructor"
-    },
-    {
       "anonymous": false,
       "inputs": [
         {
@@ -47,6 +42,94 @@
         }
       ],
       "name": "BatchInformationUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint32",
+          "name": "challengeNumber",
+          "type": "uint32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "maxBurnMin",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "maxBurnCap",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "maxBurnPercentage",
+          "type": "uint256"
+        }
+      ],
+      "name": "BurnMaxUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newBurnRecipient",
+          "type": "address"
+        }
+      ],
+      "name": "BurnRecipientUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint32",
+          "name": "challengeNumber",
+          "type": "uint32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "submitter",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "burnAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Burned",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "BurnedMoved",
       "type": "event"
     },
     {
@@ -117,13 +200,13 @@
       "anonymous": false,
       "inputs": [
         {
-          "indexed": true,
-          "internalType": "uint32",
-          "name": "challengeNumber",
-          "type": "uint32"
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "version",
+          "type": "uint8"
         }
       ],
-      "name": "HistoricalStakesUpdated",
+      "name": "Initialized",
       "type": "event"
     },
     {
@@ -155,6 +238,19 @@
       "anonymous": false,
       "inputs": [],
       "name": "MessageUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "blockNumber",
+          "type": "uint256"
+        }
+      ],
+      "name": "MigrationCompleted",
       "type": "event"
     },
     {
@@ -492,6 +588,19 @@
       "type": "event"
     },
     {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "vault",
+          "type": "address"
+        }
+      ],
+      "name": "VaultUpdated",
+      "type": "event"
+    },
+    {
       "inputs": [],
       "name": "DEFAULT_ADMIN_ROLE",
       "outputs": [
@@ -539,6 +648,30 @@
         }
       ],
       "name": "advanceToPhase",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "submitters",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "burnAmounts",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "burn",
       "outputs": [
         {
           "internalType": "bool",
@@ -606,25 +739,6 @@
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "backedParticipant",
-          "type": "address"
-        }
-      ],
-      "name": "getAllBackers",
-      "outputs": [
-        {
-          "internalType": "address[]",
-          "name": "",
-          "type": "address[]"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
       "inputs": [],
       "name": "getAllStakers",
       "outputs": [
@@ -657,18 +771,12 @@
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "backer",
-          "type": "address"
-        }
-      ],
-      "name": "getBackedParticipant",
+      "inputs": [],
+      "name": "getBurnRecipient",
       "outputs": [
         {
           "internalType": "address",
-          "name": "backedParticipant",
+          "name": "burnRecipient",
           "type": "address"
         }
       ],
@@ -678,64 +786,21 @@
     {
       "inputs": [
         {
-          "internalType": "address",
-          "name": "backedParticipant",
-          "type": "address"
+          "internalType": "uint32",
+          "name": "challengeNumber",
+          "type": "uint32"
         },
         {
-          "internalType": "uint256",
-          "name": "startIndex",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "endIndex",
-          "type": "uint256"
-        }
-      ],
-      "name": "getBackers",
-      "outputs": [
-        {
-          "internalType": "address[]",
-          "name": "",
-          "type": "address[]"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
           "internalType": "address",
-          "name": "backedParticipant",
+          "name": "participant",
           "type": "address"
         }
       ],
-      "name": "getBackersCounter",
+      "name": "getBurnedAmount",
       "outputs": [
         {
           "internalType": "uint256",
-          "name": "backersCounter",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "backedParticipant",
-          "type": "address"
-        }
-      ],
-      "name": "getBackingTotal",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "totalAmount",
+          "name": "burnedAmount",
           "type": "uint256"
         }
       ],
@@ -760,19 +825,6 @@
         {
           "internalType": "uint256",
           "name": "challengeRewards",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "getChallengeRewardsPercentageInWei",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "challengeRewardsPercentageInWei",
           "type": "uint256"
         }
       ],
@@ -818,50 +870,11 @@
     },
     {
       "inputs": [],
-      "name": "getCurrentChallengeRewardsBudget",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "currentChallengeRewardsBudget",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "getCurrentStakingRewardsBudget",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "currentStakingRewardsBudget",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
       "name": "getCurrentTotalStaked",
       "outputs": [
         {
           "internalType": "uint256",
           "name": "currentTotalStaked",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "getCurrentTournamentRewardsBudget",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "currentTournamentRewardsBudget",
           "type": "uint256"
         }
       ],
@@ -1008,6 +1021,25 @@
           "internalType": "uint32",
           "name": "challengeNumber",
           "type": "uint32"
+        }
+      ],
+      "name": "getHistoricalTotalStaked",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "historicalTotalStakedAmt",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint32",
+          "name": "challengeNumber",
+          "type": "uint32"
         },
         {
           "internalType": "address",
@@ -1071,30 +1103,6 @@
           "internalType": "string",
           "name": "message",
           "type": "string"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint32",
-          "name": "challengeNumber",
-          "type": "uint32"
-        },
-        {
-          "internalType": "address",
-          "name": "participant",
-          "type": "address"
-        }
-      ],
-      "name": "getOverallRewards",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "overallRewards",
-          "type": "uint256"
         }
       ],
       "stateMutability": "view",
@@ -1197,6 +1205,49 @@
           "internalType": "bytes32",
           "name": "",
           "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "index",
+          "type": "uint256"
+        }
+      ],
+      "name": "getRoleMember",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getRoleMemberCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
@@ -1405,6 +1456,19 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "getTotalBurnedAmount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "burnedAmount",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "uint32",
@@ -1422,19 +1486,6 @@
         {
           "internalType": "uint256",
           "name": "tournamentRewards",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "getTournamentRewardsPercentageInWei",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "tournamentRewardsPercentageInWei",
           "type": "uint256"
         }
       ],
@@ -1460,6 +1511,19 @@
           "internalType": "uint256",
           "name": "tournamentScores",
           "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getVault",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "vaultAddress",
+          "type": "address"
         }
       ],
       "stateMutability": "view",
@@ -1551,6 +1615,44 @@
       ],
       "name": "initialize",
       "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "moveBurnedOut",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "moveBurnedToPool",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }
+      ],
       "stateMutability": "nonpayable",
       "type": "function"
     },
@@ -1736,12 +1838,17 @@
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "staker",
+          "type": "address"
+        },
+        {
           "internalType": "bytes32",
           "name": "submissionHash",
           "type": "bytes32"
         }
       ],
-      "name": "submitNewPredictions",
+      "name": "submit",
       "outputs": [
         {
           "internalType": "uint32",
@@ -1794,11 +1901,11 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "backedParticipant",
+          "name": "newBurnRecipient",
           "type": "address"
         }
       ],
-      "name": "updateBackedParticipant",
+      "name": "updateBurnRecipient",
       "outputs": [
         {
           "internalType": "bool",
@@ -1833,49 +1940,6 @@
         }
       ],
       "name": "updateChallengeAndTournamentScores",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "success",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint32",
-          "name": "challengeNumber",
-          "type": "uint32"
-        },
-        {
-          "internalType": "uint256",
-          "name": "blockNumber",
-          "type": "uint256"
-        }
-      ],
-      "name": "updateChallengeOpenedBlockNumbers",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "success",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "newPercentage",
-          "type": "uint256"
-        }
-      ],
-      "name": "updateChallengeRewardsPercentageInWei",
       "outputs": [
         {
           "internalType": "bool",
@@ -1929,35 +1993,6 @@
         }
       ],
       "name": "updateDeadlines",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "success",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint32",
-          "name": "historicalChallengeNumber",
-          "type": "uint32"
-        },
-        {
-          "internalType": "address[]",
-          "name": "stakers",
-          "type": "address[]"
-        },
-        {
-          "internalType": "uint256[]",
-          "name": "amounts",
-          "type": "uint256[]"
-        }
-      ],
-      "name": "updateHistoricalStakes",
       "outputs": [
         {
           "internalType": "bool",
@@ -2134,84 +2169,12 @@
     {
       "inputs": [
         {
-          "internalType": "address[]",
-          "name": "toRemove",
-          "type": "address[]"
-        },
-        {
-          "internalType": "address[]",
-          "name": "toAdd",
-          "type": "address[]"
+          "internalType": "address",
+          "name": "vault",
+          "type": "address"
         }
       ],
-      "name": "updateStakerSet",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "success",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "bytes32",
-          "name": "oldSubmissionHash",
-          "type": "bytes32"
-        },
-        {
-          "internalType": "bytes32",
-          "name": "newSubmissionHash",
-          "type": "bytes32"
-        }
-      ],
-      "name": "updateSubmission",
-      "outputs": [
-        {
-          "internalType": "uint32",
-          "name": "challengeNumber",
-          "type": "uint32"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint32",
-          "name": "challengeNumber",
-          "type": "uint32"
-        },
-        {
-          "internalType": "uint256",
-          "name": "blockNumber",
-          "type": "uint256"
-        }
-      ],
-      "name": "updateSubmissionClosedBlockNumbers",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "success",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "newPercentage",
-          "type": "uint256"
-        }
-      ],
-      "name": "updateTournamentRewardsPercentageInWei",
+      "name": "updateVault",
       "outputs": [
         {
           "internalType": "bool",

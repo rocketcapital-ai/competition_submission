@@ -21,15 +21,30 @@ with open("{}//cfg.yml".format(CFG_DIR), "r") as config_file:
     CFG = yaml.safe_load(config_file)
 
 TOKEN_ADDRESS = CFG['LIVE']['TOKEN']
-COMPETITION_ADDRESS = CFG['LIVE']['COMPETITION']
-SUBMISSION_DIRECTORY = os.path.abspath('{}//..//..//{}'.format(CURRENT_DIR, CFG['SUBMISSION_FOLDER_NAME']))
-ENCRYPTED_SUBMISSIONS_DIRECTORY = os.path.abspath('{}//..//..//{}'.format(CURRENT_DIR, CFG['ENCRYPTED_SUBMISSIONS']))
 
+UPDOWN_ADDRESS = CFG['LIVE']['UPDOWN_ADDRESS']
+UPDOWN_DIRECTORY = os.path.abspath('{}//..//..//{}'.format(CURRENT_DIR, CFG['UPDOWN_SUBMISSION_FOLDER_NAME']))
+UPDOWN_ENCRYPTED_DIRECTORY = os.path.abspath('{}//..//..//{}'.format(CURRENT_DIR, CFG['UPDOWN_ENCRYPTED_SUBMISSIONS']))
+
+NEUTRAL_ADDRESS = CFG['LIVE']['NEUTRAL_ADDRESS']
+NEUTRAL_DIRECTORY = os.path.abspath('{}//..//..//{}'.format(CURRENT_DIR, CFG['NEUTRAL_SUBMISSION_FOLDER_NAME']))
+NEUTRAL_ENCRYPTED_DIRECTORY = os.path.abspath('{}//..//..//{}'.format(CURRENT_DIR, CFG['NEUTRAL_ENCRYPTED_SUBMISSIONS']))
+
+
+class CompetitionParams:
+    def __init__(self, address, submission_directory, encrypted_directory):
+        self.address = address
+        self.submission_directory = submission_directory
+        self.encrypted_directory = encrypted_directory
+
+
+UPDOWN_COMP = CompetitionParams(UPDOWN_ADDRESS, UPDOWN_DIRECTORY, UPDOWN_ENCRYPTED_DIRECTORY)
+NEUTRAL_COMP = CompetitionParams(NEUTRAL_ADDRESS, NEUTRAL_DIRECTORY, NEUTRAL_ENCRYPTED_DIRECTORY)
 
 class GasPriceMode:
-    standard = 'standardgaspricegwei'
-    fast = 'fastgaspricegwei'
-    rapid = 'rapidgaspricegwei'
+    safe_low = 'safeLow'
+    standard = 'standard'
+    fast = 'fast'
 
 
 def cid_to_hash(cid: str) -> str:
@@ -37,7 +52,7 @@ def cid_to_hash(cid: str) -> str:
     return res[4:]
 
 
-def decimal_to_uint(decimal_value: Decimal or float or int, decimal_places=18) -> int:
+def decimal_to_uint(decimal_value: Decimal or float or int, decimal_places=6) -> int:
     return int(Decimal('{}e{}'.format(decimal_value, decimal_places)))
 
 
@@ -59,10 +74,13 @@ def decrypt_file(file_name: str, decrypt_key_file: str, decrypted_file_name=None
     return decrypted_file_name
 
 
-def encrypt_csv(file_name: str, submitter_address: str, public_key: RSA.RsaKey) -> (str, bytes):
+def encrypt_csv(file_name: str, submitter_address: str,
+                submission_directory: str, encrypted_directory: str,
+                public_key: RSA.RsaKey) -> (str, bytes):
     symmetric_key = get_random_bytes(16)
 
-    new_submission_dir = '{}//{}'.format(ENCRYPTED_SUBMISSIONS_DIRECTORY,
+
+    new_submission_dir = '{}//{}'.format(encrypted_directory,
                                          datetime.datetime.now().strftime('%Y-%m-%d_%Hh%Mm%Ss'))
     os.makedirs(new_submission_dir, exist_ok=False)
 
@@ -71,7 +89,7 @@ def encrypt_csv(file_name: str, submitter_address: str, public_key: RSA.RsaKey) 
 
     # Encrypt and save predictions file.
     cipher = AES.new(symmetric_key, AES.MODE_GCM)
-    with open('{}//{}'.format(SUBMISSION_DIRECTORY, file_name), 'rb') as f:
+    with open('{}//{}'.format(submission_directory, file_name), 'rb') as f:
         ciphertext, tag = cipher.encrypt_and_digest(f.read())
     encrypted_predictions_path = '{}//{}.bin'.format(new_submission_dir, 'encrypted_predictions')
     with open(encrypted_predictions_path, 'wb') as encrypted_predictions_file:
@@ -99,8 +117,8 @@ def encrypt_csv(file_name: str, submitter_address: str, public_key: RSA.RsaKey) 
 def get_avg_gas_price_in_gwei(mode=GasPriceMode.fast, retry_seconds=3, num_retries=10) -> int:
     for tries in range(num_retries):
         try:
-            result = requests.get(CFG['GAS_PRICE_URL'], timeout=CFG['REQUESTS_TIMEOUT']).json()['result']
-            avg_gas_price_in_gwei = result[mode]
+            result = requests.get(CFG['GAS_PRICE_URL'], timeout=CFG['REQUESTS_TIMEOUT']).json()
+            avg_gas_price_in_gwei = result[mode]["maxFee"]
             base_gas_price_in_gwei = get_base_gas_price_in_gwei()
             if avg_gas_price_in_gwei < (base_gas_price_in_gwei * 1.13):
                 continue
@@ -132,7 +150,7 @@ def network_read(params: [Any], method="eth_call", retry_seconds=3, num_retries=
     payload = {"jsonrpc": "2.0", "method": method, "params": params, "id": 1}
     headers = {"Content-Type": "application/json"}
     for retries in range(num_retries):
-        r = requests.post(CFG['POLYGON_GATEWAY'], headers=headers, json=payload, timeout=CFG['REQUESTS_TIMEOUT'])
+        r = requests.post(CFG['RPC_GATEWAY'], headers=headers, json=payload, timeout=CFG['REQUESTS_TIMEOUT'])
         if r.ok:
             keys = r.json().keys()
             if "result" in keys:
@@ -210,12 +228,12 @@ def set_gas_price_in_gwei(gas_price_in_gwei=None, verbose=True) -> int:
     elif type(gas_price_in_gwei) is str:
         gas_price_in_gwei = get_avg_gas_price_in_gwei(gas_price_in_gwei)
     if verbose:
-        print('Setting gas price to {} gwei.'.format(gas_price_in_gwei))
+        print('Setting gas price to {:.3f} gwei.'.format(gas_price_in_gwei))
     gas_price_in_wei = decimal_to_uint(gas_price_in_gwei, 9)
     return gas_price_in_wei
 
 
-def uint_to_decimal(uint_value: int, decimal_places=18) -> Decimal:
+def uint_to_decimal(uint_value: int, decimal_places=6) -> Decimal:
     if uint_value == 0:
         return Decimal(0)
     return Decimal('{}e-{}'.format(uint_value, decimal_places))

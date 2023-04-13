@@ -1,3 +1,10 @@
+# Branches
+
+Please note that the `main` branch corresponds to the UPDOWN and NEUTRAL competitions that run on the test `YIEDL` token.
+
+For the ROCKET competition that ran on the `MUSA` token, please switch to the `musa_competition` branch.
+
+
 # Submission Script
 
 ### Please refer to `quickstart.ipynb` as the main guide on submitting predictions programmatically.
