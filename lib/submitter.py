@@ -2,7 +2,7 @@ from .core_tools.contracts import *
 
 
 class Submitter:
-    def __init__(self, jwt: str, address: str, private_key=None, url=CFG['POLYGON_GATEWAY']):
+    def __init__(self, jwt: str, address: str, comp_params: CompetitionParams, private_key=None, url=CFG['RPC_GATEWAY']):
         self._w3 = web3.Web3(
             web3.Web3.HTTPProvider(
                 url,
@@ -12,6 +12,7 @@ class Submitter:
         self._jwt = jwt
         self._address = self._w3.toChecksumAddress(address)
         self._private_key = private_key
+        self._comp_params = comp_params
         if private_key is not None:
             self._controlling_account = self._w3.eth.account.from_key(self._private_key)
 
@@ -29,7 +30,7 @@ class Submitter:
         # Load Competition interface.
         with open('{}//{}//Competition.json'.format(CURRENT_DIR, CFG['JSON_DIRECTORY'])) as f:
             competition_json = json.load(f)
-        self._competition = Competition(competition_json, self._w3, COMPETITION_ADDRESS, self._controlling_account)
+        self._competition = Competition(competition_json, self._w3, self._comp_params.address, self._controlling_account)
 
     @property
     def address(self):
@@ -45,9 +46,9 @@ class Submitter:
         """
         return self._w3
 
-    def get_musa_balance(self) -> Decimal:
+    def get_yiedl_balance(self) -> Decimal:
         """
-        @returns: Amount of MUSA in Submitter's wallet.
+        @returns: Amount of YIEDL in Submitter's wallet.
         """
         return uint_to_decimal(self._token.balanceOf(self._address))
 
@@ -59,13 +60,13 @@ class Submitter:
 
     def get_stake(self) -> Decimal:
         """
-        @returns: Amount of MUSA staked by Submitter in the Competition.
+        @returns: Amount of YIEDL staked by Submitter in the Competition.
         """
         return uint_to_decimal(self._competition.getStake(self._address))
 
     def get_stake_threshold(self) -> Decimal:
         """
-        @returns: Minimum MUSA required for staking.
+        @returns: Minimum YIEDL required for staking.
         """
         return uint_to_decimal(self._competition.getStakeThreshold())
 
@@ -103,27 +104,11 @@ class Submitter:
             print('Dataset saved to {}'.format(dataset_path))
         return dataset_path
 
-    def set_stake(self, amount: Decimal or float or int, gas_price_in_gwei=None, verbose=False) -> bool:
+    def stake_and_submit(self, amount: Decimal or float or int, file_name: str, gas_price_in_gwei=None, verbose=True) -> bool:
         """
-        Set stake amount. Must be 0 or at least 100 MUSA.
+        Submits a new prediction or updates an existing prediction along with a stake amount.
         @param amount: Amount to set stake to.
-        @param gas_price_in_gwei: (optional) Defaults to the "fast" gas price from polygonscan.com/gastracker.
-        Otherwise an explicit gwei value can be stated here, or one of the three GasPriceMode modes.
-        @param verbose: (optional) Defaults to True. Prints transaction details.
-        @return: True if completed successfully.
-        """
-        gas_price_in_wei = set_gas_price_in_gwei(gas_price_in_gwei)
-        self._token.setStake(self._competition.address, decimal_to_uint(amount), gas_price_in_wei)
-        new_staked_amount = self.get_stake()
-        if verbose:
-            print('New staked amount for {}:\n{:.18f} {}'.format(self._address, new_staked_amount, self._token.symbol))
-
-        return True
-
-    def submit_prediction(self, file_name: str, gas_price_in_gwei=None, verbose=True) -> bool:
-        """
-        Submits a new prediction or updates an existing prediction.
-        @param file_name: Name of csv file in the 'file_to_submit' folder. Please include the .csv extension.
+        @param file_name: Name of csv file in the 'updown_file_to_submit' or 'neutral_file_to_submit' folder. Please include the .csv extension.
         @param gas_price_in_gwei: (optional) Defaults to the "fast" gas price from polygonscan.com/gastracker.
         Otherwise an explicit gwei value can be stated here, or one of the three GasPriceMode modes.
         @param verbose: (optional) Defaults to True. Prints transaction details.
@@ -135,41 +120,53 @@ class Submitter:
         phase = self._competition.getPhase(challenge_number)
         assert phase == 1, 'Submissions are not currently accepted for challenge {}.'.format(challenge_number)
 
-        # Check that sufficient MUSA has been staked.
-        stake = self.get_stake()
-        stake_threshold = self.get_stake_threshold()
-        assert stake >= stake_threshold, 'Your stake is below the threshold of {:.2f}.'.format(stake_threshold, self._token.symbol)
-
         # Encrypt, zip and upload.
         if verbose:
             print('Encrypting file.')
         public_key_hash = self._competition.getKeyHash(challenge_number)
         public_key_content = retrieve_content(hash_to_cid(public_key_hash))
         public_key = RSA.import_key(public_key_content)
-        submission_dir, symmetric_key = encrypt_csv(file_name, self._address, public_key)
+        submission_dir, symmetric_key = encrypt_csv(file_name, self._address,
+                                                    self._comp_params.submission_directory,
+                                                    self._comp_params.encrypted_directory,
+                                                    public_key)
         if verbose:
             print('Zipping encrypted file.')
         zipped_submission = zip_file(submission_dir)
         if verbose:
             print('Uploading and recording on blockchain.')
         cid = pin_file_to_ipfs(zipped_submission, self._jwt)
-        old_cid = self.get_submission_cid(challenge_number)
         gas_price_in_wei = set_gas_price_in_gwei(gas_price_in_gwei)
-        if old_cid is None:
-            self._competition.submitNewPredictions(cid_to_hash(cid), gas_price_in_wei)
-        else:
-            self._competition.updateSubmission(cid_to_hash(old_cid), cid_to_hash(cid), gas_price_in_wei)
+        self._token.stakeAndSubmit(self._competition.address, decimal_to_uint(amount), cid_to_hash(cid), gas_price_in_wei)
 
         # Save symmetric key locally for verification.
-        with open('{}//{}.bin'.format(ENCRYPTED_SUBMISSIONS_DIRECTORY, '{}_symmetric_key'.format(cid)), 'wb') as f:
+        with open('{}//{}.bin'.format(self._comp_params.encrypted_directory, '{}_symmetric_key'.format(cid)), 'wb') as f:
             f.write(symmetric_key)
         return True
+
+    def withdraw(self, gas_price_in_gwei=None, verbose=True):
+        """
+        Removes submission and sets stake to 0.
+        @param gas_price_in_gwei: (optional) Defaults to the "fast" gas price from polygonscan.com/gastracker.
+        Otherwise an explicit gwei value can be stated here, or one of the three GasPriceMode modes.
+        @param verbose: (optional) Defaults to True. Prints transaction details.
+        @return: True if completed successfully.
+        """
+        # Check that the current challenge is accepting submissions.
+        challenge_number = self._competition.getLatestChallengeNumber()
+        phase = self._competition.getPhase(challenge_number)
+        assert phase == 1, 'Challenge {} is currently locked from submission updates.'.format(challenge_number)
+
+        if verbose:
+            print('Withdrawing submission and stake.')
+        gas_price_in_wei = set_gas_price_in_gwei(gas_price_in_gwei)
+        self._token.stakeAndSubmit(self._competition.address, 0, (0).to_bytes(32, "big"), gas_price_in_wei)
 
     def download_and_check(self, original_submission_file_name: str, keep_temp_files=False, verbose=True) -> bool:
         """
         Downloads the submitted file associated with the submitter's wallet address from the blockchain and IPFS, then
         decrypts it using the local key and compares it with the original submission file.
-        @param original_submission_file_name: Name of csv file in the 'file_to_submit' folder. Please include the .csv extension.
+        @param original_submission_file_name: Name of csv file in the 'updown_file_to_submit' or 'neutral_file_to_submit' folder. Please include the .csv extension.
         @param keep_temp_files: (optional): Whether or not to retain the retrieved and decrypted files.
         @param verbose: (optional) Defaults to True. Prints method details.
         @return: True if the retrieved submission file is identical to the local original submission file.
@@ -187,13 +184,13 @@ class Submitter:
         unzip_dir(temp_zip, unzipped)
         if verbose:
             print('File unzipped.')
-        symmetric_key_path = '{}//{}_symmetric_key.bin'.format(ENCRYPTED_SUBMISSIONS_DIRECTORY, cid)
+        symmetric_key_path = '{}//{}_symmetric_key.bin'.format(self._comp_params.encrypted_directory, cid)
         file_to_decrypt = '{}//encrypted_predictions.bin'.format(unzipped)
         decrypted_file_name = '{}//{}.csv'.format(unzipped, cid)
         decrypt_file(file_to_decrypt, symmetric_key_path, decrypted_file_name)
         if verbose:
             print('File decrypted. Comparing files.')
-        original = pd.read_csv('{}//{}'.format(SUBMISSION_DIRECTORY, original_submission_file_name))
+        original = pd.read_csv('{}//{}'.format(self._comp_params.submission_directory, original_submission_file_name))
         retrieved = pd.read_csv(decrypted_file_name)
         if not keep_temp_files:
             if verbose:

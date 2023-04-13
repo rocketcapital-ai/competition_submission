@@ -1,23 +1,24 @@
 # Listed in alphabetical order.
 
-ENCRYPTED_SUBMISSIONS: 'encrypted_submissions'
-GAS_PRICE_URL: 'https://gpoly.blockscan.com/gasapi.ashx?apikey=key&method=pendingpooltxgweidata'
+GAS_PRICE_URL: 'https://gasstation-mumbai.matic.today/v2'
 IPFS_API_URL: 'https://api.pinata.cloud'
 IPFS_DEFAULT: 'bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m#x-ipfs-companion-no-redirect'
 IPFS_GATEWAY: 'https://gateway.pinata.cloud/ipfs'
 JSON_DIRECTORY: 'json_interfaces'
 NULL_IPFS_CID: "QmNLei78zWmzUdbeRB3CiUfAizWUrbeeZh5K1rhAQKCh51"
-POLYGON_GATEWAY: 'https://polygon-rpc.com'
+RPC_GATEWAY: 'https://rpc.ankr.com/polygon_mumbai'
 REQUESTS_TIMEOUT: 120
-SUBMISSION_FOLDER_NAME: 'file_to_submit'
+UPDOWN_SUBMISSION_FOLDER_NAME: 'updown_file_to_submit'
+UPDOWN_ENCRYPTED_SUBMISSIONS: 'updown_encrypted_submissions'
+NEUTRAL_SUBMISSION_FOLDER_NAME: 'neutral_file_to_submit'
+NEUTRAL_ENCRYPTED_SUBMISSIONS: 'neutral_encrypted_submissions'
 SUPPORT_EMAIL: 'info@rocketcapital.ai'
 W3_TIMEOUT: 600
 W3_INTERVAL: 15
 
 
 LIVE:
-  COMPETITION: '0x6caDf1EB6e14650AF15194ED3D4C78F585598a70'
-  COMPETITION_NAME: 'ROCKET'
-  REGISTRY: '0x0Ee5AFF42564C0D293164b39D85653666ae151Eb'
-  TOKEN: '0x5E9cC1C5ec302402cA366c69fF796e0637A608f8'
-  TOKEN_NAME: 'MUSA'
+  UPDOWN_ADDRESS: '0xf584D0ad362Ca30de7893F8b9708026f4336bA7A'
+  NEUTRAL_ADDRESS: '0xfb6449716106Ec3d095D4206aB6701Fb9e6E14d8'
+  TOKEN: '0x4d76667de8868787FCb22eA2ef3100BA3345f0e6'
+  TOKEN_NAME: 'YIEDL'

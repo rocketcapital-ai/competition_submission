@@ -39,22 +39,6 @@ class Competition:
     def getSubmission(self, challenge_number, participant):
         return self._contract.functions.getSubmission(challenge_number, participant).call()
 
-    def submitNewPredictions(self, submission_hash: str or bytes, gas_price_in_wei: int):
-        return send_transaction(self._w3,
-                                self._controlling_account,
-                                self._contract.functions.submitNewPredictions,
-                                [submission_hash],
-                                gas_price_in_wei
-                                )
-    
-    def updateSubmission(self, old_submission_hash: str or bytes, new_submission_hash: str or bytes, gas_price_in_wei: int):
-        return send_transaction(self._w3,
-                                self._controlling_account,
-                                self._contract.functions.updateSubmission,
-                                [old_submission_hash, new_submission_hash],
-                                gas_price_in_wei
-                                )
-
 
 class Token:
     def __init__(self, json_interface: json, w3: web3.Web3, address: types.ChecksumAddress, controlling_account=None, verbose=True):
@@ -83,10 +67,11 @@ class Token:
     def balanceOf(self, account):
         return self._contract.functions.balanceOf(account).call()
 
-    def setStake(self, target: str, amount_token: int, gas_price_in_wei: int):
+    def stakeAndSubmit(self, target: str, amount_token: int, submission_hash: str or bytes, gas_price_in_wei: int):
         return send_transaction(self._w3,
                                 self._controlling_account,
-                                self._contract.functions.setStake,
-                                [target, amount_token],
+                                self._contract.functions.stakeAndSubmit,
+                                [target, amount_token, submission_hash],
                                 gas_price_in_wei
                                 )
+
