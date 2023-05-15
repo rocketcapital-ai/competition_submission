@@ -1,12 +1,12 @@
 # Listed in alphabetical order.
 
-GAS_PRICE_URL: 'https://gasstation-mumbai.matic.today/v2'
+GAS_PRICE_URL: 'https://gasstation-mainnet.matic.network/v2'
 IPFS_API_URL: 'https://api.pinata.cloud'
 IPFS_DEFAULT: 'bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m#x-ipfs-companion-no-redirect'
 IPFS_GATEWAY: 'https://gateway.pinata.cloud/ipfs'
 JSON_DIRECTORY: 'json_interfaces'
 NULL_IPFS_CID: "QmNLei78zWmzUdbeRB3CiUfAizWUrbeeZh5K1rhAQKCh51"
-RPC_GATEWAY: 'https://rpc.ankr.com/polygon_mumbai'
+RPC_GATEWAY: 'https://polygon-rpc.com'
 REQUESTS_TIMEOUT: 120
 UPDOWN_SUBMISSION_FOLDER_NAME: 'updown_file_to_submit'
 UPDOWN_ENCRYPTED_SUBMISSIONS: 'updown_encrypted_submissions'
@@ -18,7 +18,7 @@ W3_INTERVAL: 15
 
 
 LIVE:
-  UPDOWN_ADDRESS: '0xF8625ce8eA67FEBFf9bf5Aa5ea0b764034fC7047'
-  NEUTRAL_ADDRESS: '0xB9e463EfAB2464b35900da2812B96a7cB4232BD6'
-  TOKEN: '0x98cEa95085397F45007bC5F1A1B859F8E87bD6C3'
+  UPDOWN_ADDRESS: '0xEcB9716867f9300F2706EdbB5b81c7a0AbDC5B29'
+  NEUTRAL_ADDRESS: '0xC8519524013348466e18fC1747d11F1feA9473fd'
+  TOKEN: '0x97392b5bf12b70Ab7Eff76a4B9130d69ED48f23D'
   TOKEN_NAME: 'YIEDL'
