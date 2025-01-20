@@ -1,0 +1,5 @@
+bast58
+pyyaml
+requests
+web3
+pandas
