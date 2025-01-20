@@ -1,19 +1,18 @@
-import base58
 import datetime
-import json
 import os
-import pandas as pd
-import requests
 import shutil
 import time
-import web3
+from decimal import Decimal
+from typing import Any, Callable
+
+import requests
+import base58
 import yaml
+
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
-from decimal import Decimal
-from typing import Any, Callable
-from web3 import types
+
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 CFG_DIR = os.path.abspath('{}//..//..//cfg_files'.format(CURRENT_DIR))
@@ -52,7 +51,7 @@ def cid_to_hash(cid: str) -> str:
     return res[4:]
 
 
-def decimal_to_uint(decimal_value: Decimal or float or int, decimal_places=6) -> int:
+def decimal_to_uint(decimal_value: Decimal | float | int, decimal_places=6) -> int:
     return int(Decimal('{}e{}'.format(decimal_value, decimal_places)))
 
 
@@ -76,7 +75,7 @@ def decrypt_file(file_name: str, decrypt_key_file: str, decrypted_file_name=None
 
 def encrypt_csv(file_name: str, submitter_address: str,
                 submission_directory: str, encrypted_directory: str,
-                public_key: RSA.RsaKey) -> (str, bytes):
+                public_key: RSA.RsaKey) -> tuple[str, bytes]:
     symmetric_key = get_random_bytes(16)
 
 
@@ -114,7 +113,7 @@ def encrypt_csv(file_name: str, submitter_address: str,
     return new_submission_dir, symmetric_key
 
 
-def get_avg_gas_price_in_gwei(mode=GasPriceMode.fast, retry_seconds=3, num_retries=10) -> int:
+def get_avg_gas_price_in_gwei(mode=GasPriceMode.fast, retry_seconds=3, num_retries=10) -> int | None:
     for tries in range(num_retries):
         try:
             result = requests.get(CFG['GAS_PRICE_URL'], timeout=CFG['REQUESTS_TIMEOUT']).json()
@@ -139,7 +138,7 @@ def get_base_gas_price_in_gwei() -> int:
     return base_gas_gwei
 
 
-def hash_to_cid(hash_obj: bytes or bytearray or str) -> str:
+def hash_to_cid(hash_obj: bytes | bytearray | str) -> str:
     if isinstance(hash_obj, (bytes, bytearray)): hash_obj = hash_obj.hex()
     hash_obj = '1220' + str(hash_obj)
     hash_obj = int(hash_obj, 16)
@@ -164,7 +163,7 @@ def network_read(params: [Any], method="eth_call", retry_seconds=3, num_retries=
     assert False, "network read exceeded max retries. Please try again later."
 
 
-def pin_file_to_ipfs(filename: str, jwt: str, cid_version=0, verbose=False, retry_seconds=3, num_retries=10) -> str:
+def pin_file_to_ipfs(filename: str, jwt: str, cid_version=0, verbose=False, retry_seconds=3, num_retries=10) -> str | None:
     url = '{}/{}'.format(CFG['IPFS_API_URL'], 'pinning/pinFileToIPFS')
     headers = {"Authorization": "Bearer " + jwt}
     for tries in range(num_retries):
@@ -250,7 +249,3 @@ def zip_file(file_path: str, dest=None) -> str:
     if dest is None:
         dest = file_path
     return shutil.make_archive(dest, 'zip', file_path)
-
-
-
-

@@ -1,4 +1,5 @@
-from .tools import *
+from web3 import types
+import tools
 
 
 class Competition:
@@ -35,7 +36,7 @@ class Competition:
 
     def getStakeThreshold(self):
         return self._contract.functions.getStakeThreshold().call()
-    
+
     def getSubmission(self, challenge_number, participant):
         return self._contract.functions.getSubmission(challenge_number, participant).call()
 
@@ -67,11 +68,10 @@ class Token:
     def balanceOf(self, account):
         return self._contract.functions.balanceOf(account).call()
 
-    def stakeAndSubmit(self, target: str, amount_token: int, submission_hash: str or bytes, gas_price_in_wei: int):
+    def stakeAndSubmit(self, target: str, amount_token: int, submission_hash: str | bytes, gas_price_in_wei: int):
         return send_transaction(self._w3,
                                 self._controlling_account,
                                 self._contract.functions.stakeAndSubmit,
                                 [target, amount_token, submission_hash],
                                 gas_price_in_wei
                                 )
-

@@ -1,5 +1,5 @@
-bast58
+base58==2.1.1
 pyyaml
 requests
-web3
+web3==7.7.0
 pandas

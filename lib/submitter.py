@@ -1,5 +1,7 @@
-from .core_tools.contracts import *
+import json
+import pandas as pd
 
+from .core_tools.contracts import *
 
 class Submitter:
     def __init__(self, jwt: str, address: str, comp_params: CompetitionParams, private_key=None, url=CFG['RPC_GATEWAY']):
