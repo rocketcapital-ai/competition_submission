@@ -1,5 +1,5 @@
 base58==2.1.1
-pyyaml
-requests
+pyyaml==6.0.2
+requests==2.32.3
 web3==7.7.0
-pandas
+pandas==2.2.3

@@ -3,11 +3,12 @@ import os
 import shutil
 import time
 from decimal import Decimal
-from typing import Any, Callable
+from typing import Callable
 
 import requests
 import base58
 import yaml
+import web3
 
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
@@ -48,7 +49,7 @@ class GasPriceMode:
 
 def cid_to_hash(cid: str) -> str:
     res = base58.b58decode(cid).hex()
-    return res[4:]
+    return res[-4:].encode("utf8")
 
 
 def decimal_to_uint(decimal_value: Decimal | float | int, decimal_places=6) -> int:
@@ -97,7 +98,7 @@ def encrypt_csv(file_name: str, submitter_address: str,
 
     # Encrypt and save originator file.
     cipher = AES.new(symmetric_key, AES.MODE_GCM)
-    submitter_address = web3.Web3.toChecksumAddress(submitter_address)
+    submitter_address = web3.Web3.to_checksum_address(submitter_address)
     ciphertext, tag = cipher.encrypt_and_digest(bytes(submitter_address, 'utf-8'))
     encrypted_originator_path = '{}//{}.bin'.format(new_submission_dir, 'originator')
     with open(encrypted_originator_path, 'wb') as encrypted_originator_file:
@@ -145,7 +146,7 @@ def hash_to_cid(hash_obj: bytes | bytearray | str) -> str:
     return base58.b58encode_int(hash_obj).decode('utf-8')
 
 
-def network_read(params: [Any], method="eth_call", retry_seconds=3, num_retries=10) -> str:
+def network_read(params: list, method="eth_call", retry_seconds=3, num_retries=10) -> str:
     payload = {"jsonrpc": "2.0", "method": method, "params": params, "id": 1}
     headers = {"Content-Type": "application/json"}
     for retries in range(num_retries):
@@ -206,13 +207,13 @@ def retrieve_content(cid, retry_seconds=3, num_retries=10):
 
 def send_transaction(w3: web3.Web3, controlling_account, method: Callable, args: list, gas_price_in_wei: int, verbose=True) -> web3.types.TxReceipt:
     assert controlling_account is not None, 'Private key required to send blockchain transactions.'
-    tx_data = method(*args).buildTransaction({
+    tx_data = method(*args).build_transaction({
         'from': controlling_account.address,
         'maxFeePerGas': hex(gas_price_in_wei),
-        'nonce': w3.eth.getTransactionCount(controlling_account.address)
+        'nonce': w3.eth.get_transaction_count(controlling_account.address)
     })
-    signed_tx = w3.eth.account.sign_transaction(tx_data, controlling_account.privateKey)
-    tx_id = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+    signed_tx = w3.eth.account.sign_transaction(tx_data, controlling_account._private_key)
+    tx_id = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
     if verbose:
         print('Sending transaction {}'.format(tx_id.hex()))
     tx_receipt = w3.eth.wait_for_transaction_receipt(tx_id, CFG['W3_TIMEOUT'], CFG['W3_INTERVAL'])
