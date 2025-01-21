@@ -1,19 +1,19 @@
-import base58
 import datetime
-import json
 import os
-import pandas as pd
-import requests
 import shutil
 import time
-import web3
+from decimal import Decimal
+from typing import Callable
+
+import requests
+import base58
 import yaml
+import web3
+
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
-from decimal import Decimal
-from typing import Any, Callable
-from web3 import types
+
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 CFG_DIR = os.path.abspath('{}//..//..//cfg_files'.format(CURRENT_DIR))
@@ -49,10 +49,10 @@ class GasPriceMode:
 
 def cid_to_hash(cid: str) -> str:
     res = base58.b58decode(cid).hex()
-    return res[4:]
+    return res[-4:].encode("utf8")
 
 
-def decimal_to_uint(decimal_value: Decimal or float or int, decimal_places=6) -> int:
+def decimal_to_uint(decimal_value: Decimal | float | int, decimal_places=6) -> int:
     return int(Decimal('{}e{}'.format(decimal_value, decimal_places)))
 
 
@@ -76,7 +76,7 @@ def decrypt_file(file_name: str, decrypt_key_file: str, decrypted_file_name=None
 
 def encrypt_csv(file_name: str, submitter_address: str,
                 submission_directory: str, encrypted_directory: str,
-                public_key: RSA.RsaKey) -> (str, bytes):
+                public_key: RSA.RsaKey) -> tuple[str, bytes]:
     symmetric_key = get_random_bytes(16)
 
 
@@ -98,7 +98,7 @@ def encrypt_csv(file_name: str, submitter_address: str,
 
     # Encrypt and save originator file.
     cipher = AES.new(symmetric_key, AES.MODE_GCM)
-    submitter_address = web3.Web3.toChecksumAddress(submitter_address)
+    submitter_address = web3.Web3.to_checksum_address(submitter_address)
     ciphertext, tag = cipher.encrypt_and_digest(bytes(submitter_address, 'utf-8'))
     encrypted_originator_path = '{}//{}.bin'.format(new_submission_dir, 'originator')
     with open(encrypted_originator_path, 'wb') as encrypted_originator_file:
@@ -114,7 +114,7 @@ def encrypt_csv(file_name: str, submitter_address: str,
     return new_submission_dir, symmetric_key
 
 
-def get_avg_gas_price_in_gwei(mode=GasPriceMode.fast, retry_seconds=3, num_retries=10) -> int:
+def get_avg_gas_price_in_gwei(mode=GasPriceMode.fast, retry_seconds=3, num_retries=10) -> int | None:
     for tries in range(num_retries):
         try:
             result = requests.get(CFG['GAS_PRICE_URL'], timeout=CFG['REQUESTS_TIMEOUT']).json()
@@ -139,14 +139,14 @@ def get_base_gas_price_in_gwei() -> int:
     return base_gas_gwei
 
 
-def hash_to_cid(hash_obj: bytes or bytearray or str) -> str:
+def hash_to_cid(hash_obj: bytes | bytearray | str) -> str:
     if isinstance(hash_obj, (bytes, bytearray)): hash_obj = hash_obj.hex()
     hash_obj = '1220' + str(hash_obj)
     hash_obj = int(hash_obj, 16)
     return base58.b58encode_int(hash_obj).decode('utf-8')
 
 
-def network_read(params: [Any], method="eth_call", retry_seconds=3, num_retries=10) -> str:
+def network_read(params: list, method="eth_call", retry_seconds=3, num_retries=10) -> str:
     payload = {"jsonrpc": "2.0", "method": method, "params": params, "id": 1}
     headers = {"Content-Type": "application/json"}
     for retries in range(num_retries):
@@ -164,7 +164,7 @@ def network_read(params: [Any], method="eth_call", retry_seconds=3, num_retries=
     assert False, "network read exceeded max retries. Please try again later."
 
 
-def pin_file_to_ipfs(filename: str, jwt: str, cid_version=0, verbose=False, retry_seconds=3, num_retries=10) -> str:
+def pin_file_to_ipfs(filename: str, jwt: str, cid_version=0, verbose=False, retry_seconds=3, num_retries=10) -> str | None:
     url = '{}/{}'.format(CFG['IPFS_API_URL'], 'pinning/pinFileToIPFS')
     headers = {"Authorization": "Bearer " + jwt}
     for tries in range(num_retries):
@@ -207,13 +207,13 @@ def retrieve_content(cid, retry_seconds=3, num_retries=10):
 
 def send_transaction(w3: web3.Web3, controlling_account, method: Callable, args: list, gas_price_in_wei: int, verbose=True) -> web3.types.TxReceipt:
     assert controlling_account is not None, 'Private key required to send blockchain transactions.'
-    tx_data = method(*args).buildTransaction({
+    tx_data = method(*args).build_transaction({
         'from': controlling_account.address,
         'maxFeePerGas': hex(gas_price_in_wei),
-        'nonce': w3.eth.getTransactionCount(controlling_account.address)
+        'nonce': w3.eth.get_transaction_count(controlling_account.address)
     })
-    signed_tx = w3.eth.account.sign_transaction(tx_data, controlling_account.privateKey)
-    tx_id = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+    signed_tx = w3.eth.account.sign_transaction(tx_data, controlling_account._private_key)
+    tx_id = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
     if verbose:
         print('Sending transaction {}'.format(tx_id.hex()))
     tx_receipt = w3.eth.wait_for_transaction_receipt(tx_id, CFG['W3_TIMEOUT'], CFG['W3_INTERVAL'])
@@ -250,7 +250,3 @@ def zip_file(file_path: str, dest=None) -> str:
     if dest is None:
         dest = file_path
     return shutil.make_archive(dest, 'zip', file_path)
-
-
-
-
