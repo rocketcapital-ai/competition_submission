@@ -28,7 +28,7 @@ class Submitter:
         if private_key is not None:
             self._controlling_account = self._w3.eth.account.from_key(self._private_key)
 
-            # Sanity check on con          rolling address.
+            # Sanity check on conrolling address.
             assert self._controlling_account.address == self._address, 'Private key does not match address {}.'.format(
                 self._address)
         else:

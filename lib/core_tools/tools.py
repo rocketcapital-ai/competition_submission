@@ -49,7 +49,7 @@ class GasPriceMode:
 
 def cid_to_hash(cid: str) -> str:
     res = base58.b58decode(cid).hex()
-    return res[-4:].encode("utf8")
+    return res[-32:].encode("utf8")
 
 
 def decimal_to_uint(decimal_value: Decimal | float | int, decimal_places=6) -> int:
@@ -173,10 +173,11 @@ def pin_file_to_ipfs(filename: str, jwt: str, cid_version=0, verbose=False, retr
                 files = {"file": f}
                 params = {"cidVersion": cid_version}
                 response = requests.post(url, headers=headers, files=files, params=params)
+                response_json = response.json()
                 if verbose:
                     print('Pinned payload with size {} bytes to {} at {}.'.format(
-                        response['PinSize'], response['IpfsHash'], response['Timestamp']))
-                return response.json()['IpfsHash']
+                        response_json['PinSize'], response_json['IpfsHash'], response_json['Timestamp']))
+                return response_json['IpfsHash']
         except Exception as e:
             if tries == num_retries - 1:
                 assert False, 'File could not be uploaded and pinned to IPFS. Please try again later or contact {} for support.'.format(
