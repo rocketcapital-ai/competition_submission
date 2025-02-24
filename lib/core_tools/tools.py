@@ -49,7 +49,7 @@ class GasPriceMode:
 
 def cid_to_hash(cid: str) -> str:
     res = base58.b58decode(cid).hex()
-    return res[-32:].encode("utf8")
+    return res[4:]
 
 
 def decimal_to_uint(decimal_value: Decimal | float | int, decimal_places=6) -> int:

@@ -21,6 +21,9 @@ class Submitter:
                 request_kwargs={'timeout': tools.CFG['W3_TIMEOUT']}
             )
         )
+        # disabling strict byte checking...
+        self._w3.strict_bytes_type_checking = False
+
         self._jwt = jwt
         self._address = self._w3.to_checksum_address(address)
         self._private_key = private_key
