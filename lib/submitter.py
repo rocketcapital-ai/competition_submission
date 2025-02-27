@@ -45,18 +45,19 @@ class Submitter:
             self._controlling_account = self._w3.eth.account.from_key(self._private_key)
 
             # Sanity check on conrolling address.
-            assert self._controlling_account.address == self._address, 'Private key does not match address {}.'.format(
-                self._address)
+            assert self._controlling_account.address == self._address, f'Private key does not match address {self._address}.'
         else:
             self._controlling_account = None
 
         # Load Token interface.
-        with open('{}//{}//Token.json'.format(tools.CURRENT_DIR, tools.CFG['JSON_DIRECTORY'])) as f:
+        path = os.path.join(tools.CURRENT_DIR, tools.CFG['JSON_DIRECTORY'], 'Token.json')
+        with open(path) as f:
             token_json = json.load(f)
         self._token = contracts.Token(token_json, self._w3, tools.TOKEN_ADDRESS, self._controlling_account)
 
         # Load Competition interface.
-        with open('{}//{}//Competition.json'.format(tools.CURRENT_DIR, tools.CFG['JSON_DIRECTORY'])) as f:
+        path = os.path.join(tools.CURRENT_DIR, tools.CFG['JSON_DIRECTORY'], 'Competition.json')
+        with open(path) as f:
             competition_json = json.load(f)
         self._competition = contracts.Competition(competition_json, self._w3, self._comp_params.address, self._controlling_account)
 
@@ -98,7 +99,7 @@ class Submitter:
         """
         return tools.uint_to_decimal(self._competition.getStakeThreshold())
 
-    def get_submission_cid(self, challenge_number) -> str or None:
+    def get_submission_cid(self, challenge_number) -> str | None:
         """
         @params: challenge_number: Challenge to return Submitter's submission cid of.
         @returns: IPFS Content Identifier (CID) of Submitter's existing submission. Returns None if no submission has been made.
@@ -121,12 +122,14 @@ class Submitter:
         if dataset_cid == tools.CFG['NULL_IPFS_CID']:
             assert False, 'Dataset for this challenge does not exist.'
         if destination_directory is None:
-            destination_directory = '{}//..//{}//challenge_{}'.format(CURRENT_DIR, CFG['DATASET_DIRECTORY'], challenge_number)
+            destination_directory = os.path.join(
+                tools.CURRENT_DIR, "..", tools.CFG['DATASET_DIRECTORY'],
+                f"challenge_{challenge_number}")
         os.makedirs(destination_directory, exist_ok=True)
-        destination_file = '{}//dataset.zip'.format(destination_directory)
+        destination_file = os.path.join(destination_directory, 'dataset.zip')
         logger.info('Downloading dataset..')
         dataset_path = tools.retrieve_file(dataset_cid, destination_file)
-        logger.info('Dataset saved to {}'.format(dataset_path))
+        logger.info('Dataset saved to %s', dataset_path)
         return dataset_path
 
     def stake_and_submit(self, amount: Decimal | float | int, file_name: str, gas_price_in_gwei=None) -> bool:
@@ -142,7 +145,7 @@ class Submitter:
         # Check that the current challenge is accepting submissions.
         challenge_number = self._competition.getLatestChallengeNumber()
         phase = self._competition.getPhase(challenge_number)
-        assert phase == 1, 'Submissions are not currently accepted for challenge {}.'.format(challenge_number)
+        assert phase == 1, f'Submissions are not currently accepted for challenge {challenge_number}.'
 
         # Encrypt, zip and upload.
         logger.info('Encrypting file.')
@@ -165,7 +168,8 @@ class Submitter:
             gas_price_in_wei)
 
         # Save symmetric key locally for verification.
-        with open('{}//{}.bin'.format(self._comp_params.encrypted_directory, '{}_symmetric_key'.format(cid)), 'wb') as f:
+        path = os.path.join(self._comp_params.encrypted_directory, f"{cid}_symmetric_key.bin")
+        with open(path, 'wb') as f:
             f.write(symmetric_key)
         return True
 
@@ -179,7 +183,7 @@ class Submitter:
         # Check that the current challenge is accepting submissions.
         challenge_number = self._competition.getLatestChallengeNumber()
         phase = self._competition.getPhase(challenge_number)
-        assert phase == 1, 'Challenge {} is currently locked from submission updates.'.format(challenge_number)
+        assert phase == 1, f'Challenge {challenge_number} is currently locked from submission updates.'
 
         logger.info('Withdrawing submission and stake.')
         gas_price_in_wei = tools.set_gas_price_in_gwei(gas_price_in_gwei)
@@ -196,19 +200,22 @@ class Submitter:
         challenge_number = self._competition.getLatestChallengeNumber()
         cid = self.get_submission_cid(challenge_number)
         assert cid is not None, 'No submission found.'
-        temp_zip = 'temp_{}.zip'.format(cid)
-        unzipped = 'temp_{}'.format(cid)
+        temp_zip = f'temp_{cid}.zip'
+        unzipped = f'temp_{cid}'
         logger.info('Retrieving file.')
         tools.retrieve_file(cid, temp_zip)
         logger.info('File retrieved.')
         tools.unzip_dir(temp_zip, unzipped)
         logger.info('File unzipped.')
-        symmetric_key_path = '{}//{}_symmetric_key.bin'.format(self._comp_params.encrypted_directory, cid)
-        file_to_decrypt = '{}//encrypted_predictions.bin'.format(unzipped)
-        decrypted_file_name = '{}//{}.csv'.format(unzipped, cid)
+        symmetric_key_path = os.path.join(
+            self._comp_params.encrypted_directory, f"{cid}_symmetric_key.bin")
+        file_to_decrypt = os.path.join(unzipped, "encrypted_predictions.bin")
+        decrypted_file_name = os.path.join(unzipped, f'{cid}.csv')
         tools.decrypt_file(file_to_decrypt, symmetric_key_path, decrypted_file_name)
         logger.info('File decrypted. Comparing files.')
-        original = pd.read_csv('{}//{}'.format(self._comp_params.submission_directory, original_submission_file_name))
+        original = pd.read_csv(
+            os.path.join(self._comp_params.submission_directory,
+                original_submission_file_name))
         retrieved = pd.read_csv(decrypted_file_name)
         if not keep_temp_files:
             logger.info('Removing temp files.')

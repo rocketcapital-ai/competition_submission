@@ -18,19 +18,19 @@ from Crypto.Random import get_random_bytes
 logger = logging.getLogger(__name__)
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
-CFG_DIR = os.path.abspath('{}//..//..//cfg_files'.format(CURRENT_DIR))
-with open("{}//cfg.yml".format(CFG_DIR), "r") as config_file:
+ROOT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
+with open(os.path.join(ROOT_DIR, "cfg_files", "cfg.yml", "r")) as config_file:
     CFG = yaml.safe_load(config_file)
 
 TOKEN_ADDRESS = CFG['LIVE']['TOKEN']
-
 UPDOWN_ADDRESS = CFG['LIVE']['UPDOWN_ADDRESS']
-UPDOWN_DIRECTORY = os.path.abspath('{}//..//..//{}'.format(CURRENT_DIR, CFG['UPDOWN_SUBMISSION_FOLDER_NAME']))
-UPDOWN_ENCRYPTED_DIRECTORY = os.path.abspath('{}//..//..//{}'.format(CURRENT_DIR, CFG['UPDOWN_ENCRYPTED_SUBMISSIONS']))
+
+UPDOWN_DIRECTORY = os.path.join(ROOT_DIR, CFG['UPDOWN_SUBMISSION_FOLDER_NAME'])
+UPDOWN_ENCRYPTED_DIRECTORY = os.path.join(ROOT_DIR, CFG['UPDOWN_ENCRYPTED_SUBMISSIONS'])
 
 NEUTRAL_ADDRESS = CFG['LIVE']['NEUTRAL_ADDRESS']
-NEUTRAL_DIRECTORY = os.path.abspath('{}//..//..//{}'.format(CURRENT_DIR, CFG['NEUTRAL_SUBMISSION_FOLDER_NAME']))
-NEUTRAL_ENCRYPTED_DIRECTORY = os.path.abspath('{}//..//..//{}'.format(CURRENT_DIR, CFG['NEUTRAL_ENCRYPTED_SUBMISSIONS']))
+NEUTRAL_DIRECTORY = os.path.join(ROOT_DIR, CFG['NEUTRAL_SUBMISSION_FOLDER_NAME'])
+NEUTRAL_ENCRYPTED_DIRECTORY = os.path.join(ROOT_DIR, CFG['NEUTRAL_ENCRYPTED_SUBMISSIONS'])
 
 
 class CompetitionParams:
@@ -68,10 +68,10 @@ def decrypt_file(file_name: str, decrypt_key_file: str, decrypted_file_name=None
     tag = key[-16:]
     cipher = AES.new(decrypted_key, AES.MODE_GCM, nonce)
     decrypted_data = cipher.decrypt_and_verify(ciphertext, tag)
-    if decrypted_file_name == None: decrypted_file_name = file_name.split('.')[0] + '_decrypted.csv'
+    if decrypted_file_name is None: decrypted_file_name = file_name.split('.')[0] + '_decrypted.csv'
     with open(decrypted_file_name, 'wb') as dec_f:
         dec_f.write(decrypted_data)
-    logger.info('Decrypted predictions file saved to {}.'.format(decrypted_file_name))
+    logger.info('Decrypted predictions file saved to %s.', decrypted_file_name)
     return decrypted_file_name
 
 
@@ -109,7 +109,8 @@ def encrypt_csv(file_name: str, submitter_address: str,
     # Encrypt and save symmetric key using Competition public key for this challenge.
     cipher = PKCS1_OAEP.new(public_key)
     encrypted_symmetric_key = cipher.encrypt(symmetric_key)
-    encrypted_symmetric_key_path = '{}//{}.pem'.format(new_submission_dir, 'encrypted_symmetric_key')
+    encrypted_symmetric_key_path = os.path.join(new_submission_dir, 'encrypted_symmetric_key')
+
     with open(encrypted_symmetric_key_path, 'wb') as encrypted_symmetric_key_file:
         encrypted_symmetric_key_file.write(encrypted_symmetric_key)
     return new_submission_dir, symmetric_key
@@ -141,7 +142,8 @@ def get_base_gas_price_in_gwei() -> int:
 
 
 def hash_to_cid(hash_obj: bytes | bytearray | str) -> str:
-    if isinstance(hash_obj, (bytes, bytearray)): hash_obj = hash_obj.hex()
+    if isinstance(hash_obj, (bytes, bytearray)):
+        hash_obj = hash_obj.hex()
     hash_obj = '1220' + str(hash_obj)
     hash_obj = int(hash_obj, 16)
     return base58.b58encode_int(hash_obj).decode('utf-8')
@@ -150,7 +152,7 @@ def hash_to_cid(hash_obj: bytes | bytearray | str) -> str:
 def network_read(params: list, method="eth_call", retry_seconds=3, num_retries=10) -> str:
     payload = {"jsonrpc": "2.0", "method": method, "params": params, "id": 1}
     headers = {"Content-Type": "application/json"}
-    for retries in range(num_retries):
+    for _ in range(num_retries):
         r = requests.post(CFG['RPC_GATEWAY'], headers=headers, json=payload, timeout=CFG['REQUESTS_TIMEOUT'])
         if r.ok:
             keys = r.json().keys()
@@ -175,11 +177,10 @@ def pin_file_to_ipfs(filename: str, jwt: str, cid_version=0, retry_seconds=3, nu
                 params = {"cidVersion": cid_version}
                 response = requests.post(url, headers=headers, files=files, params=params)
                 response_json = response.json()
-                if verbose:
-                    print('Pinned payload with size {} bytes to {} at {}.'.format(
-                        response_json['PinSize'], response_json['IpfsHash'], response_json['Timestamp']))
+                logger.info('Pinned payload with size {} bytes to {} at {}.'.format(
+                    response_json['PinSize'], response_json['IpfsHash'], response_json['Timestamp']))
                 return response_json['IpfsHash']
-        except Exception as e:
+        except Exception:
             if tries == num_retries - 1:
                 assert False, 'File could not be uploaded and pinned to IPFS. Please try again later or contact {} for support.'.format(
                     CFG['SUPPORT_EMAIL'])
@@ -216,9 +217,9 @@ def send_transaction(w3: web3.Web3, controlling_account, method: Callable, args:
     })
     signed_tx = w3.eth.account.sign_transaction(tx_data, controlling_account._private_key)
     tx_id = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-    logger.info('Sending transaction {}'.format(tx_id.hex()))
+    logger.info('Sending transaction %s', tx_id.hex())
     tx_receipt = w3.eth.wait_for_transaction_receipt(tx_id, CFG['W3_TIMEOUT'], CFG['W3_INTERVAL'])
-    logger.info('Transaction sent. Tx ID: {}'.format(tx_id.hex()))
+    logger.info('Transaction sent. Tx ID: %s', tx_id.hex())
     return tx_receipt
 
 
@@ -238,10 +239,10 @@ def uint_to_decimal(uint_value: int, decimal_places=6) -> Decimal:
     return Decimal('{}e-{}'.format(uint_value, decimal_places))
 
 
-def unzip_dir(zippedFile: str, extractDest: str) -> str:
-    shutil.unpack_archive(zippedFile, extractDest)
-    logger.info('Data unzipped to {}.'.format(extractDest))
-    return extractDest
+def unzip_dir(zipped_file: str, extract_dest: str) -> str:
+    shutil.unpack_archive(zipped_file, extract_dest)
+    logger.info('Data unzipped to %s.', extract_dest)
+    return extract_dest
 
 
 def zip_file(file_path: str, dest=None) -> str:
