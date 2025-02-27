@@ -1,5 +1,6 @@
 import json
 import os
+import logging
 import shutil
 from decimal import Decimal
 
@@ -10,11 +11,17 @@ from Crypto.PublicKey import RSA
 from lib.core_tools import contracts
 from lib.core_tools import tools
 
+logger = logging.getLogger(__name__)
+
 
 class Submitter:
     def __init__(self, jwt: str, address: str,
                  comp_params: tools.CompetitionParams,
-                 private_key=None, url=tools.CFG['RPC_GATEWAY']):
+                 private_key=None, url=tools.CFG['RPC_GATEWAY'],
+                 verbose: bool = True):
+        """
+        @param verbose: (optional) Defaults to True. Prints method details.
+        """
         self._w3 = web3.Web3(
             web3.Web3.HTTPProvider(
                 url,
@@ -28,6 +35,12 @@ class Submitter:
         self._address = self._w3.to_checksum_address(address)
         self._private_key = private_key
         self._comp_params = comp_params
+
+        if verbose:
+            logging.basicConfig(level=logging.INFO)
+        else:
+            logging.basicConfig(level=logging.WARNING)
+
         if private_key is not None:
             self._controlling_account = self._w3.eth.account.from_key(self._private_key)
 
@@ -95,11 +108,10 @@ class Submitter:
             return None
         return cid
 
-    def get_dataset(self, destination_directory: str = None, challenge_number: int = None, verbose=True) -> str:
+    def get_dataset(self, destination_directory: str = None, challenge_number: int = None) -> str:
         """
         @param destination_directory: (optional) Folder path in which to save the dataset zip file.
         @param challenge_number: (optional) Challenge of which corresponding dataset should be retrieved. Defaults to the current challenge.
-        @param verbose: (optional) Defaults to True. Prints transaction details.
         @return: Path of the retrieved dataset.
         """
         if challenge_number is None:
@@ -112,21 +124,18 @@ class Submitter:
             destination_directory = '{}//..//{}//challenge_{}'.format(CURRENT_DIR, CFG['DATASET_DIRECTORY'], challenge_number)
         os.makedirs(destination_directory, exist_ok=True)
         destination_file = '{}//dataset.zip'.format(destination_directory)
-        if verbose:
-            print('Downloading dataset..')
+        logger.info('Downloading dataset..')
         dataset_path = tools.retrieve_file(dataset_cid, destination_file)
-        if verbose:
-            print('Dataset saved to {}'.format(dataset_path))
+        logger.info('Dataset saved to {}'.format(dataset_path))
         return dataset_path
 
-    def stake_and_submit(self, amount: Decimal | float | int, file_name: str, gas_price_in_gwei=None, verbose=True) -> bool:
+    def stake_and_submit(self, amount: Decimal | float | int, file_name: str, gas_price_in_gwei=None) -> bool:
         """
         Submits a new prediction or updates an existing prediction along with a stake amount.
         @param amount: Amount to set stake to.
         @param file_name: Name of csv file in the 'updown_file_to_submit' or 'neutral_file_to_submit' folder. Please include the .csv extension.
         @param gas_price_in_gwei: (optional) Defaults to the "fast" gas price from polygonscan.com/gastracker.
         Otherwise an explicit gwei value can be stated here, or one of the three GasPriceMode modes.
-        @param verbose: (optional) Defaults to True. Prints transaction details.
         @return: True if completed successfully.
         """
 
@@ -136,8 +145,7 @@ class Submitter:
         assert phase == 1, 'Submissions are not currently accepted for challenge {}.'.format(challenge_number)
 
         # Encrypt, zip and upload.
-        if verbose:
-            print('Encrypting file.')
+        logger.info('Encrypting file.')
         public_key_hash = self._competition.getKeyHash(challenge_number)
         public_key_content = tools.retrieve_content(tools.hash_to_cid(public_key_hash))
         public_key = RSA.import_key(public_key_content)
@@ -145,11 +153,9 @@ class Submitter:
                                                     self._comp_params.submission_directory,
                                                     self._comp_params.encrypted_directory,
                                                     public_key)
-        if verbose:
-            print('Zipping encrypted file.')
+        logger.info('Zipping encrypted file.')
         zipped_submission = tools.zip_file(submission_dir)
-        if verbose:
-            print('Uploading and recording on blockchain.')
+        logger.info('Uploading and recording on blockchain.')
         cid = tools.pin_file_to_ipfs(zipped_submission, self._jwt)
         gas_price_in_wei = tools.set_gas_price_in_gwei(gas_price_in_gwei)
         self._token.stakeAndSubmit(
@@ -163,12 +169,11 @@ class Submitter:
             f.write(symmetric_key)
         return True
 
-    def withdraw(self, gas_price_in_gwei=None, verbose=True):
+    def withdraw(self, gas_price_in_gwei=None):
         """
         Removes submission and sets stake to 0.
         @param gas_price_in_gwei: (optional) Defaults to the "fast" gas price from polygonscan.com/gastracker.
         Otherwise an explicit gwei value can be stated here, or one of the three GasPriceMode modes.
-        @param verbose: (optional) Defaults to True. Prints transaction details.
         @return: True if completed successfully.
         """
         # Check that the current challenge is accepting submissions.
@@ -176,18 +181,16 @@ class Submitter:
         phase = self._competition.getPhase(challenge_number)
         assert phase == 1, 'Challenge {} is currently locked from submission updates.'.format(challenge_number)
 
-        if verbose:
-            print('Withdrawing submission and stake.')
+        logger.info('Withdrawing submission and stake.')
         gas_price_in_wei = tools.set_gas_price_in_gwei(gas_price_in_gwei)
         self._token.stakeAndSubmit(self._competition.address, 0, (0).to_bytes(32, "big"), gas_price_in_wei)
 
-    def download_and_check(self, original_submission_file_name: str, keep_temp_files=False, verbose=True) -> bool:
+    def download_and_check(self, original_submission_file_name: str, keep_temp_files=False) -> bool:
         """
         Downloads the submitted file associated with the submitter's wallet address from the blockchain and IPFS, then
         decrypts it using the local key and compares it with the original submission file.
         @param original_submission_file_name: Name of csv file in the 'updown_file_to_submit' or 'neutral_file_to_submit' folder. Please include the .csv extension.
         @param keep_temp_files: (optional): Whether or not to retain the retrieved and decrypted files.
-        @param verbose: (optional) Defaults to True. Prints method details.
         @return: True if the retrieved submission file is identical to the local original submission file.
         """
         challenge_number = self._competition.getLatestChallengeNumber()
@@ -195,27 +198,21 @@ class Submitter:
         assert cid is not None, 'No submission found.'
         temp_zip = 'temp_{}.zip'.format(cid)
         unzipped = 'temp_{}'.format(cid)
-        if verbose:
-            print('Retrieving file.')
+        logger.info('Retrieving file.')
         tools.retrieve_file(cid, temp_zip)
-        if verbose:
-            print('File retrieved.')
+        logger.info('File retrieved.')
         tools.unzip_dir(temp_zip, unzipped)
-        if verbose:
-            print('File unzipped.')
+        logger.info('File unzipped.')
         symmetric_key_path = '{}//{}_symmetric_key.bin'.format(self._comp_params.encrypted_directory, cid)
         file_to_decrypt = '{}//encrypted_predictions.bin'.format(unzipped)
         decrypted_file_name = '{}//{}.csv'.format(unzipped, cid)
         tools.decrypt_file(file_to_decrypt, symmetric_key_path, decrypted_file_name)
-        if verbose:
-            print('File decrypted. Comparing files.')
+        logger.info('File decrypted. Comparing files.')
         original = pd.read_csv('{}//{}'.format(self._comp_params.submission_directory, original_submission_file_name))
         retrieved = pd.read_csv(decrypted_file_name)
         if not keep_temp_files:
-            if verbose:
-                print('Removing temp files.')
+            logger.info('Removing temp files.')
             shutil.rmtree(unzipped)
             os.remove(temp_zip)
-            if verbose:
-                print('Temp files removed.')
+            logger.info('Temp files removed.')
         return original.equals(retrieved)

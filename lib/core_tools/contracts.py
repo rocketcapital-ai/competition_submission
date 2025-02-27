@@ -4,13 +4,12 @@ from lib.core_tools import tools
 
 
 class Competition:
-    def __init__(self, json_interface: dict, w3: web3.Web3, address: types.ChecksumAddress, controlling_account=None, verbose=True):
+    def __init__(self, json_interface: dict, w3: web3.Web3, address: types.ChecksumAddress, controlling_account=None):
         abi = json_interface['abi']
         contract = w3.eth.contract(abi=abi)
         self._w3 = w3
         self._contract = contract(address=address)
         self._controlling_account = controlling_account
-        self._verbose = verbose
         self._address = self._contract.address
 
     @property
@@ -43,13 +42,12 @@ class Competition:
 
 
 class Token:
-    def __init__(self, json_interface: dict, w3: web3.Web3, address: types.ChecksumAddress, controlling_account=None, verbose=True):
+    def __init__(self, json_interface: dict, w3: web3.Web3, address: types.ChecksumAddress, controlling_account=None):
         abi = json_interface['abi']
         contract = w3.eth.contract(abi=abi)
         self._w3 = w3
         self._contract = contract(address=address)
         self._controlling_account = controlling_account
-        self._verbose = verbose
         self._name = self._contract.functions.name().call()
         self._symbol = self._contract.functions.symbol().call()
         self._address = self._contract.address

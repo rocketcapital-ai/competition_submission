@@ -1,5 +1,6 @@
 import datetime
 import os
+import logging
 import shutil
 import time
 from decimal import Decimal
@@ -14,6 +15,7 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
 
+logger = logging.getLogger(__name__)
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 CFG_DIR = os.path.abspath('{}//..//..//cfg_files'.format(CURRENT_DIR))
@@ -56,7 +58,7 @@ def decimal_to_uint(decimal_value: Decimal | float | int, decimal_places=6) -> i
     return int(Decimal('{}e{}'.format(decimal_value, decimal_places)))
 
 
-def decrypt_file(file_name: str, decrypt_key_file: str, decrypted_file_name=None, verbose=False) -> str:
+def decrypt_file(file_name: str, decrypt_key_file: str, decrypted_file_name=None) -> str:
     with open(decrypt_key_file, 'rb') as key_f:
         decrypted_key = key_f.read()
     with open(file_name, 'rb') as enc_f:
@@ -69,8 +71,7 @@ def decrypt_file(file_name: str, decrypt_key_file: str, decrypted_file_name=None
     if decrypted_file_name == None: decrypted_file_name = file_name.split('.')[0] + '_decrypted.csv'
     with open(decrypted_file_name, 'wb') as dec_f:
         dec_f.write(decrypted_data)
-    if verbose:
-        print('Decrypted predictions file saved to {}.'.format(decrypted_file_name))
+    logger.info('Decrypted predictions file saved to {}.'.format(decrypted_file_name))
     return decrypted_file_name
 
 
@@ -164,7 +165,7 @@ def network_read(params: list, method="eth_call", retry_seconds=3, num_retries=1
     assert False, "network read exceeded max retries. Please try again later."
 
 
-def pin_file_to_ipfs(filename: str, jwt: str, cid_version=0, verbose=False, retry_seconds=3, num_retries=10) -> str | None:
+def pin_file_to_ipfs(filename: str, jwt: str, cid_version=0, retry_seconds=3, num_retries=10) -> str | None:
     url = '{}/{}'.format(CFG['IPFS_API_URL'], 'pinning/pinFileToIPFS')
     headers = {"Authorization": "Bearer " + jwt}
     for tries in range(num_retries):
@@ -199,14 +200,14 @@ def retrieve_content(cid, retry_seconds=3, num_retries=10):
             r = requests.get('{}/{}'.format(CFG['IPFS_GATEWAY'], cid), timeout=CFG['REQUESTS_TIMEOUT'])
             return r.content
         except Exception as e:
-            print(e)
+            logger.warning(e)
             if tries == num_retries - 1:
                 assert False, 'File could not be retrieved. Please try again later or contact {} for support.'.format(
                     CFG['SUPPORT_EMAIL'])
             time.sleep(retry_seconds)
 
 
-def send_transaction(w3: web3.Web3, controlling_account, method: Callable, args: list, gas_price_in_wei: int, verbose=True) -> web3.types.TxReceipt:
+def send_transaction(w3: web3.Web3, controlling_account, method: Callable, args: list, gas_price_in_wei: int) -> web3.types.TxReceipt:
     assert controlling_account is not None, 'Private key required to send blockchain transactions.'
     tx_data = method(*args).build_transaction({
         'from': controlling_account.address,
@@ -215,21 +216,18 @@ def send_transaction(w3: web3.Web3, controlling_account, method: Callable, args:
     })
     signed_tx = w3.eth.account.sign_transaction(tx_data, controlling_account._private_key)
     tx_id = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-    if verbose:
-        print('Sending transaction {}'.format(tx_id.hex()))
+    logger.info('Sending transaction {}'.format(tx_id.hex()))
     tx_receipt = w3.eth.wait_for_transaction_receipt(tx_id, CFG['W3_TIMEOUT'], CFG['W3_INTERVAL'])
-    if verbose:
-        print('Transaction sent. Tx ID: {}'.format(tx_id.hex()))
+    logger.info('Transaction sent. Tx ID: {}'.format(tx_id.hex()))
     return tx_receipt
 
 
-def set_gas_price_in_gwei(gas_price_in_gwei=None, verbose=True) -> int:
+def set_gas_price_in_gwei(gas_price_in_gwei=None) -> int:
     if gas_price_in_gwei is None:
         gas_price_in_gwei = get_avg_gas_price_in_gwei()
     elif type(gas_price_in_gwei) is str:
         gas_price_in_gwei = get_avg_gas_price_in_gwei(gas_price_in_gwei)
-    if verbose:
-        print('Setting gas price to {:.3f} gwei.'.format(gas_price_in_gwei))
+    logger.info('Setting gas price to {:.3f} gwei.'.format(gas_price_in_gwei))
     gas_price_in_wei = decimal_to_uint(gas_price_in_gwei, 9)
     return gas_price_in_wei
 
@@ -240,10 +238,9 @@ def uint_to_decimal(uint_value: int, decimal_places=6) -> Decimal:
     return Decimal('{}e-{}'.format(uint_value, decimal_places))
 
 
-def unzip_dir(zippedFile: str, extractDest: str, verbose=False) -> str:
+def unzip_dir(zippedFile: str, extractDest: str) -> str:
     shutil.unpack_archive(zippedFile, extractDest)
-    if verbose:
-        print('Data unzipped to {}.'.format(extractDest))
+    logger.info('Data unzipped to {}.'.format(extractDest))
     return extractDest
 
 
