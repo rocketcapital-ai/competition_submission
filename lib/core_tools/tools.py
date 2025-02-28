@@ -183,7 +183,7 @@ def network_read(params: list, method="eth_call", retry_seconds=3, num_retries=1
 def pin_file_to_ipfs(filename: str, jwt: str, cid_version=0,
                      retry_seconds=3, num_retries=10) -> str | None:
     """try pinning a file to IPFS"""
-    url = f'{CFG['IPFS_API_URL']}/pinning/pinFileToIPFS'
+    url = f"{CFG['IPFS_API_URL']}/pinning/pinFileToIPFS"
     headers = {"Authorization": "Bearer " + jwt}
     for tries in range(num_retries):
         try:
