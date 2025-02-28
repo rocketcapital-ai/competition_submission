@@ -1,9 +1,3 @@
-# Branches
-
-Please note that the `main` branch corresponds to the UPDOWN and NEUTRAL competitions that run on the test `YIEDL` token.
-
-For the ROCKET competition that ran on the `MUSA` token, please switch to the `musa_competition` branch.
-
 
 # Submission Script
 
@@ -11,14 +5,14 @@ For the ROCKET competition that ran on the `MUSA` token, please switch to the `m
 
 ## Getting Set Up
 
-Python Version Requirement: >= 3.9.2
+Python Version Requirement: >= 3.11
 
 Please install the following external modules.
 - [pip install base58](https://pypi.org/project/base58/)
 - [pip install PyYAML](https://pypi.org/project/PyYAML/)
 - [pip install requests](https://pypi.org/project/requests/)
 - [pip install web3](https://pypi.org/project/web3/)
-- [pip install pandas](https://pypi.org/project/pandas/) (in case you don't already have pandas installed)
+- [pip install pandas](https://pypi.org/project/pandas/)
 
 In the first code cell of `quickstart.ipynb`, you will need to fill in 3 fields.
 1. `jwt`. This is your personal [pinata](https://pinata.cloud) access key.
@@ -36,15 +30,11 @@ In the first code cell of `quickstart.ipynb`, you will need to fill in 3 fields.
    1. You can find this under *Metamask* > *3-dot menu on the top right* > *Account details* > *Export Private Key*.
 
 ## Files stored on Pinata.
-**Please do not unpin or delete your files that are stored on Pinata until at least the opening of the next challenge.** 
+**Please do not unpin or delete your files that are stored on Pinata until at least the opening of the next challenge.**
 
 ## ! Please keep your Private Key safe !
 Stolen private keys lead to loss of funds from your blockchain wallet.
 
 Please take necessary steps to make sure your private key string is never exposed.
 
-This can include storing the key as a password-protected local environment variable, as well as keeping your computer safe from prying eyes or malware. 
-
-
-
-
+This can include storing the key as a password-protected local environment variable, as well as keeping your computer safe from prying eyes or malware.
