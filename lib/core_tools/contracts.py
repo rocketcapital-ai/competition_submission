@@ -1,10 +1,15 @@
+# pylint:disable=invalid-name, missing-function-docstring
+"""ABI connectors"""
+
 import web3
 from web3 import types
 from lib.core_tools import tools
 
 
 class Competition:
-    def __init__(self, json_interface: dict, w3: web3.Web3, address: types.ChecksumAddress, controlling_account=None):
+    """competition ABI connector"""
+    def __init__(self, json_interface: dict, w3: web3.Web3,
+                 address: types.ChecksumAddress, controlling_account=None):
         abi = json_interface['abi']
         contract = w3.eth.contract(abi=abi)
         self._w3 = w3
@@ -42,7 +47,9 @@ class Competition:
 
 
 class Token:
-    def __init__(self, json_interface: dict, w3: web3.Web3, address: types.ChecksumAddress, controlling_account=None):
+    """Token ABI connector"""
+    def __init__(self, json_interface: dict, w3: web3.Web3,
+                 address: types.ChecksumAddress, controlling_account=None):
         abi = json_interface['abi']
         contract = w3.eth.contract(abi=abi)
         self._w3 = w3
@@ -64,10 +71,11 @@ class Token:
     def address(self):
         return self._address
 
-    def balanceOf(self, account):
+    def balanceOf(self, account): # pylint:disable=invalid-name
         return self._contract.functions.balanceOf(account).call()
 
-    def stakeAndSubmit(self, target: str, amount_token: int, submission_hash: str | bytes, gas_price_in_wei: int):
+    def stakeAndSubmit(self, target: str, amount_token: int,
+                       submission_hash: str | bytes, gas_price_in_wei: int):
         return tools.send_transaction(self._w3,
                                 self._controlling_account,
                                 self._contract.functions.stakeAndSubmit,

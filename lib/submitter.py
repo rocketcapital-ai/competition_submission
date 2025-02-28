@@ -1,3 +1,5 @@
+"""client to submit predictions to the Yiedl competitions"""
+
 import json
 import os
 import logging
@@ -17,7 +19,7 @@ logger = logging.getLogger(__name__)
 class Submitter:
     def __init__(self, jwt: str, address: str,
                  comp_params: tools.CompetitionParams,
-                 private_key=None, url=tools.CFG['RPC_GATEWAY'],
+                 private_key=None, *, url=tools.CFG['RPC_GATEWAY'],
                  verbose: bool = True):
         """
         @param verbose: (optional) Defaults to True. Prints method details.
@@ -33,7 +35,6 @@ class Submitter:
 
         self._jwt = jwt
         self._address = self._w3.to_checksum_address(address)
-        self._private_key = private_key
         self._comp_params = comp_params
 
         if verbose:
@@ -42,24 +43,27 @@ class Submitter:
             logging.basicConfig(level=logging.WARNING)
 
         if private_key is not None:
-            self._controlling_account = self._w3.eth.account.from_key(self._private_key)
+            self._controlling_account = self._w3.eth.account.from_key(private_key)
 
             # Sanity check on conrolling address.
-            assert self._controlling_account.address == self._address, f'Private key does not match address {self._address}.'
+            msg = f'Private key does not match address {self._address}.'
+            assert self._controlling_account.address == self._address, msg
         else:
             self._controlling_account = None
 
         # Load Token interface.
         path = os.path.join(tools.CURRENT_DIR, tools.CFG['JSON_DIRECTORY'], 'Token.json')
-        with open(path) as f:
+        with open(path, "r") as f:
             token_json = json.load(f)
-        self._token = contracts.Token(token_json, self._w3, tools.TOKEN_ADDRESS, self._controlling_account)
+        self._token = contracts.Token(
+            token_json, self._w3, tools.TOKEN_ADDRESS, self._controlling_account)
 
         # Load Competition interface.
         path = os.path.join(tools.CURRENT_DIR, tools.CFG['JSON_DIRECTORY'], 'Competition.json')
         with open(path) as f:
             competition_json = json.load(f)
-        self._competition = contracts.Competition(competition_json, self._w3, self._comp_params.address, self._controlling_account)
+        self._competition = contracts.Competition(
+            competition_json, self._w3, self._comp_params.address, self._controlling_account)
 
     @property
     def address(self):
@@ -102,7 +106,8 @@ class Submitter:
     def get_submission_cid(self, challenge_number) -> str | None:
         """
         @params: challenge_number: Challenge to return Submitter's submission cid of.
-        @returns: IPFS Content Identifier (CID) of Submitter's existing submission. Returns None if no submission has been made.
+        @returns: IPFS Content Identifier (CID) of Submitter's existing submission.
+                  Returns None if no submission has been made.
         """
         cid = tools.hash_to_cid(self._competition.getSubmission(challenge_number, self._address))
         if cid == tools.CFG['NULL_IPFS_CID']:
@@ -112,7 +117,8 @@ class Submitter:
     def get_dataset(self, destination_directory: str = None, challenge_number: int = None) -> str:
         """
         @param destination_directory: (optional) Folder path in which to save the dataset zip file.
-        @param challenge_number: (optional) Challenge of which corresponding dataset should be retrieved. Defaults to the current challenge.
+        @param challenge_number: (optional) Challenge of which corresponding dataset should
+            be retrieved. Defaults to the current challenge.
         @return: Path of the retrieved dataset.
         """
         if challenge_number is None:
@@ -132,12 +138,15 @@ class Submitter:
         logger.info('Dataset saved to %s', dataset_path)
         return dataset_path
 
-    def stake_and_submit(self, amount: Decimal | float | int, file_name: str, gas_price_in_gwei=None) -> bool:
+    def stake_and_submit(self, amount: Decimal | float | int, file_name: str,
+                         gas_price_in_gwei=None) -> bool:
         """
         Submits a new prediction or updates an existing prediction along with a stake amount.
         @param amount: Amount to set stake to.
-        @param file_name: Name of csv file in the 'updown_file_to_submit' or 'neutral_file_to_submit' folder. Please include the .csv extension.
-        @param gas_price_in_gwei: (optional) Defaults to the "fast" gas price from polygonscan.com/gastracker.
+        @param file_name: Name of csv file in the 'updown_file_to_submit' or
+            'neutral_file_to_submit' folder. Please include the .csv extension.
+        @param gas_price_in_gwei: (optional) Defaults to the "fast" gas price
+            from polygonscan.com/gastracker.
         Otherwise an explicit gwei value can be stated here, or one of the three GasPriceMode modes.
         @return: True if completed successfully.
         """
@@ -145,7 +154,7 @@ class Submitter:
         # Check that the current challenge is accepting submissions.
         challenge_number = self._competition.getLatestChallengeNumber()
         phase = self._competition.getPhase(challenge_number)
-        assert phase == 1, f'Submissions are not currently accepted for challenge {challenge_number}.'
+        assert phase == 1, f'Submissions currently not accepted for challenge {challenge_number}.'
 
         # Encrypt, zip and upload.
         logger.info('Encrypting file.')
@@ -160,12 +169,11 @@ class Submitter:
         zipped_submission = tools.zip_file(submission_dir)
         logger.info('Uploading and recording on blockchain.')
         cid = tools.pin_file_to_ipfs(zipped_submission, self._jwt)
-        gas_price_in_wei = tools.set_gas_price_in_gwei(gas_price_in_gwei)
         self._token.stakeAndSubmit(
             self._competition.address,
             tools.decimal_to_uint(amount),
             tools.cid_to_hash(cid),
-            gas_price_in_wei)
+            tools.set_gas_price_in_gwei(gas_price_in_gwei))
 
         # Save symmetric key locally for verification.
         path = os.path.join(self._comp_params.encrypted_directory, f"{cid}_symmetric_key.bin")
@@ -176,26 +184,33 @@ class Submitter:
     def withdraw(self, gas_price_in_gwei=None):
         """
         Removes submission and sets stake to 0.
-        @param gas_price_in_gwei: (optional) Defaults to the "fast" gas price from polygonscan.com/gastracker.
+        @param gas_price_in_gwei: (optional) Defaults to the "fast" gas price
+            from polygonscan.com/gastracker.
         Otherwise an explicit gwei value can be stated here, or one of the three GasPriceMode modes.
         @return: True if completed successfully.
         """
         # Check that the current challenge is accepting submissions.
         challenge_number = self._competition.getLatestChallengeNumber()
         phase = self._competition.getPhase(challenge_number)
-        assert phase == 1, f'Challenge {challenge_number} is currently locked from submission updates.'
+        msg = f'Challenge {challenge_number} is currently locked from submission updates.'
+        assert phase == 1, msg
 
         logger.info('Withdrawing submission and stake.')
         gas_price_in_wei = tools.set_gas_price_in_gwei(gas_price_in_gwei)
-        self._token.stakeAndSubmit(self._competition.address, 0, (0).to_bytes(32, "big"), gas_price_in_wei)
+        self._token.stakeAndSubmit(
+            self._competition.address, 0, (0).to_bytes(32, "big"), gas_price_in_wei)
 
     def download_and_check(self, original_submission_file_name: str, keep_temp_files=False) -> bool:
         """
-        Downloads the submitted file associated with the submitter's wallet address from the blockchain and IPFS, then
-        decrypts it using the local key and compares it with the original submission file.
-        @param original_submission_file_name: Name of csv file in the 'updown_file_to_submit' or 'neutral_file_to_submit' folder. Please include the .csv extension.
-        @param keep_temp_files: (optional): Whether or not to retain the retrieved and decrypted files.
-        @return: True if the retrieved submission file is identical to the local original submission file.
+        Downloads the submitted file associated with the submitter's wallet address from
+        the blockchain and IPFS, then decrypts it using the local key and compares it with the
+        original submission file.
+        @param original_submission_file_name: Name of csv file in the 'updown_file_to_submit' or
+            'neutral_file_to_submit' folder. Please include the .csv extension.
+        @param keep_temp_files: (optional):
+            Whether or not to retain the retrieved and decrypted files.
+        @return: True if the retrieved submission file is identical to
+            the local original submission file.
         """
         challenge_number = self._competition.getLatestChallengeNumber()
         cid = self.get_submission_cid(challenge_number)
