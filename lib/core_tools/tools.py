@@ -221,7 +221,7 @@ def retrieve_content(cid, retry_seconds=3, num_retries=10):
     """retrive file from IPFS gateway"""
     for tries in range(num_retries):
         try:
-            url = f'{CFG['IPFS_GATEWAY']}/{CFG['IPFS_DEFAULT']}'
+            url = f"{CFG['IPFS_GATEWAY']}/{CFG['IPFS_DEFAULT']}"
             requests.get(url, timeout=CFG['REQUESTS_TIMEOUT'])
             r = requests.get(f'{CFG['IPFS_GATEWAY']}/{cid}', timeout=CFG['REQUESTS_TIMEOUT'])
             return r.content
