@@ -208,6 +208,56 @@ class Delegate:
         """
         return self.set_stake(0, submitter, gas_price_in_gwei)
 
+    def _delegate_staking(self, delegate_address: str, submitter: str, is_cancel: bool,
+                          gas_price_in_gwei=None, bypass_check=False) -> bool:
+        """
+        Delegates staking to another address.
+        @param delegate_address: Address to delegate staking to.
+        @param submitter: Address of submitter to delegate staking for.
+        @param is_cancel: Whether to cancel the delegation.
+        @param gas_price_in_gwei: (optional) Defaults to the "fast" gas price from
+        polygonscan.com/gastracker. Otherwise an explicit gwei value can be stated here,
+        or one of the three GasPriceMode modes.
+        @param bypass_check: (optional) Defaults to False.
+        If true, bypasses the assertion that stake
+        must be 0 before delegating.
+        @return: True if completed successfully.
+        """
+        gas_price_in_wei = tools.set_gas_price_in_gwei(gas_price_in_gwei)
+        self._competition.delegateStaking(
+            delegate_address, submitter, is_cancel,
+            gas_price_in_wei, bypass_check=bypass_check)
+        return True
+
+    def invite_delegate(self, delegate_address: str, submitter: str,
+                        gas_price_in_gwei=None, bypass_check=False) -> bool:
+        """
+        Invites another address to be the delegate.
+        @param delegate_address: Address to invite as delegate.
+        @param submitter: Address of submitter to invite delegate for.
+        @param gas_price_in_gwei: (optional) Defaults to the "fast" gas price from
+        polygonscan.com/gastracker. Otherwise an explicit gwei value can be stated here,
+        or one of the three GasPriceMode modes.
+        @param bypass_check: (optional) Defaults to False.
+        If true, bypasses the assertion that stake
+        must be 0 before delegating.
+        @return: True if completed successfully.
+        """
+        return self._delegate_staking(delegate_address, submitter, False, gas_price_in_gwei, bypass_check)
+
+    def cancel_delegate_invitation(self, delegate_address: str, submitter: str,
+                                   gas_price_in_gwei=None) -> bool:
+        """
+        Cancels an invitation to delegate.
+        @param delegate_address: Address to cancel invitation to.
+        @param submitter: Address of submitter to cancel invitation for.
+        @param gas_price_in_gwei: (optional) Defaults to the "fast" gas price from
+        polygonscan.com/gastracker. Otherwise an explicit gwei value can be stated here,
+        or one of the three GasPriceMode modes.
+        @return: True if completed successfully.
+        """
+        return self._delegate_staking(delegate_address, submitter, True, gas_price_in_gwei, bypass_check=True)
+
     def approve_competition_with_amount(self, amount: Decimal | float | int,
                                         gas_price_in_gwei=None) -> bool:
         """
@@ -252,9 +302,9 @@ class Delegate:
         self._token.approve(self._comp_params.address, uint_amount, gas_price_in_wei)
         return True
 
-    def accept_invite_from(self, submitter: str):
+    def accept_invite_for(self, submitter: str):
         """
-        Accepts an invite from a submitter.
+        Accepts an invite for a submitter.
         @param submitter: Address of submitter to accept invite from.
         """
         gas_price_in_wei = tools.set_gas_price_in_gwei()

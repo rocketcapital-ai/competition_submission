@@ -463,3 +463,10 @@ class Submitter:
             os.remove(temp_zip)
             logger.info('Temp files removed.')
         return original.equals(retrieved)
+
+    def accept_invite_for_self(self):
+        """
+        Accepts an invite from a delegate to set the delegate back to the submitter.
+        """
+        gas_price_in_wei = tools.set_gas_price_in_gwei()
+        self._competition.acceptStakingDelegationFor(self._address, gas_price_in_wei)
