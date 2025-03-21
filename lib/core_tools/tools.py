@@ -117,7 +117,7 @@ def encrypt_csv(file_name: str, submitter_address: str,
     # Encrypt and save symmetric key using Competition public key for this challenge.
     cipher = PKCS1_OAEP.new(public_key)
     encrypted_symmetric_key = cipher.encrypt(symmetric_key)
-    with open(os.path.join(new_submission_dir, 'encrypted_symmetric_key'), 'wb') as file_handler:
+    with open(os.path.join(new_submission_dir, 'encrypted_symmetric_key.pem'), 'wb') as file_handler:
         file_handler.write(encrypted_symmetric_key)
     return new_submission_dir, symmetric_key
 
