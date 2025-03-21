@@ -17,6 +17,7 @@ import web3
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
+from eth_account.account import LocalAccount
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,7 @@ class CompetitionParams:
 UPDOWN_COMP = CompetitionParams(UPDOWN_ADDRESS, UPDOWN_DIRECTORY, UPDOWN_ENCRYPTED_DIRECTORY)
 NEUTRAL_COMP = CompetitionParams(NEUTRAL_ADDRESS, NEUTRAL_DIRECTORY, NEUTRAL_ENCRYPTED_DIRECTORY)
 
+
 @dataclass
 class GasPriceMode:
     """gas price settings"""
@@ -67,7 +69,7 @@ def decimal_to_uint(decimal_value: Decimal | float | int, decimal_places=6) -> i
 
 
 def decrypt_file(file_name: str, decrypt_key_file: str, decrypted_file_name=None) -> str:
-    """decript a file using the provided key file"""
+    """decrypt a file using the provided key file"""
     with open(decrypt_key_file, 'rb') as key_f:
         decrypted_key = key_f.read()
     with open(file_name, 'rb') as enc_f:
@@ -117,7 +119,10 @@ def encrypt_csv(file_name: str, submitter_address: str,
     # Encrypt and save symmetric key using Competition public key for this challenge.
     cipher = PKCS1_OAEP.new(public_key)
     encrypted_symmetric_key = cipher.encrypt(symmetric_key)
-    with open(os.path.join(new_submission_dir, 'encrypted_symmetric_key'), 'wb') as file_handler:
+    with open(
+            os.path.join(new_submission_dir, 'encrypted_symmetric_key.pem'),
+            'wb'
+    ) as file_handler:
         file_handler.write(encrypted_symmetric_key)
     return new_submission_dir, symmetric_key
 
@@ -235,7 +240,7 @@ def retrieve_content(cid, retry_seconds=3, num_retries=10):
     return None
 
 
-def send_transaction(w3: web3.Web3, controlling_account, method: Callable,
+def send_transaction(w3: web3.Web3, controlling_account: LocalAccount, method: Callable,
                      args: list, gas_price_in_wei: int) -> web3.types.TxReceipt:
     """build, sign and send a transaction"""
     assert controlling_account is not None, 'Private key required to send blockchain transactions.'
