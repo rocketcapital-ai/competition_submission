@@ -1,0 +1,12 @@
+[project]
+name = "yiedl"
+version = "0.1.0"
+description = "Programmaticaly interact with the yiedl machine learning competition"
+requires-python = ">=3.11"
+
+[project.urls]
+Repository = "https://github.com/rocketcapital-ai/competition_submission"
+Documentation = "https://docs.yiedl.ai/rci-competition"
+Changelog = "https://github.com/rocketcapital-ai/competition_submission/CHANGELOG.md"
+Releases = "https://github.com/rocketcapital-ai/competition_submission/releases"
+Discord = "https://discord.com/invite/r6NbnCSrzn"
