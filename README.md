@@ -9,7 +9,6 @@ Python Version Requirement: >= 3.11
 
 Please install the following external modules.
 - [pip install base58](https://pypi.org/project/base58/)
-- [pip install PyYAML](https://pypi.org/project/PyYAML/)
 - [pip install requests](https://pypi.org/project/requests/)
 - [pip install web3](https://pypi.org/project/web3/)
 - [pip install pandas](https://pypi.org/project/pandas/)
