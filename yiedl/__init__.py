@@ -1,1 +1,3 @@
-from submitter import Submitter
+"""Yiedl competition client"""
+
+from yiedl.submitter import Submitter
