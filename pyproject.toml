@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Programmaticaly interact with the yiedl machine learning competition"
 requires-python = ">=3.11"
 readme = "README.md"
+license = { file = "LICENSE" }
 dependencies = [
     "base58>=2.1.1",
     "requests>=2.32.3",
@@ -17,3 +18,10 @@ Documentation = "https://docs.yiedl.ai/rci-competition"
 Changelog = "https://github.com/rocketcapital-ai/competition_submission/CHANGELOG.md"
 Releases = "https://github.com/rocketcapital-ai/competition_submission/releases"
 Discord = "https://discord.com/invite/r6NbnCSrzn"
+
+[tool.setuptools]
+packages = ["yiedl"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+'src' = ['*.json']
