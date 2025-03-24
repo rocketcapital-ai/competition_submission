@@ -24,4 +24,4 @@ packages = ["yiedl"]
 include-package-data = true
 
 [tool.setuptools.package-data]
-'src' = ['*.json']
+'yiedl' = ['json_interfaces/*.json']
