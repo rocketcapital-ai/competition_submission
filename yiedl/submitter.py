@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class Submitter:
     """yiedl submission client"""
     def __init__(self, jwt: str, address: str,
-                 comp_params: tools.CompetitionParams,
+                 competition: str = "neutral",
                  private_key=None, *, url=settings.RPC_GATEWAY,
                  verbose: bool = True):
         """
@@ -37,7 +37,13 @@ class Submitter:
 
         self._jwt = jwt
         self._address = self._w3.to_checksum_address(address)
-        self._comp_params = comp_params
+
+        match competition.upper():
+            case "NEUTRAL":
+                self._comp_params = tools.NEUTRAL_COMP
+            case "UPDOWN":
+                self._comp_params = tools.UPDOWN_COMP
+            case _: raise ValueError("unknown competition", competition)
 
         if verbose:
             logging.basicConfig(level=logging.INFO)
