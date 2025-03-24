@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class Submitter:
+    """yiedl submission client"""
     def __init__(self, jwt: str, address: str,
                  comp_params: tools.CompetitionParams,
                  private_key=None, *, url=settings.RPC_GATEWAY,
@@ -115,9 +116,9 @@ class Submitter:
             return None
         return cid
 
-    def get_dataset(self, destination_directory: str = None, challenge_number: int = None) -> str:
+    def get_dataset(self, destination_directory: str, challenge_number: int = None) -> str:
         """
-        @param destination_directory: (optional) Folder path in which to save the dataset zip file.
+        @param destination_directory: Folder path in which to save the dataset zip file.
         @param challenge_number: (optional) Challenge of which corresponding dataset should
             be retrieved. Defaults to the current challenge.
         @return: Path of the retrieved dataset.
@@ -128,10 +129,6 @@ class Submitter:
         dataset_cid = tools.hash_to_cid(dataset_hash)
         if dataset_cid == settings.NULL_IPFS_CID:
             assert False, 'Dataset for this challenge does not exist.'
-        if destination_directory is None:
-            destination_directory = os.path.join(
-                tools.CURRENT_DIR, "..", settings.DATASET_DIRECTORY,
-                f"challenge_{challenge_number}")
         os.makedirs(destination_directory, exist_ok=True)
         destination_file = os.path.join(destination_directory, 'dataset.zip')
         logger.info('Downloading dataset..')

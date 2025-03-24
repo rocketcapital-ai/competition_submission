@@ -1,4 +1,4 @@
-# global settings
+""" global settings """
 
 GAS_PRICE_URL =  'https://gasstation.polygon.technology/v2'
 IPFS_API_URL = 'https://api.pinata.cloud'

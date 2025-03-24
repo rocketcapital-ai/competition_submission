@@ -98,9 +98,9 @@ def encrypt_csv(file_name: str, submitter_address: str,
     cipher = AES.new(symmetric_key, AES.MODE_GCM)
     with open(os.path.join(submission_directory, file_name), 'rb') as f:
         ciphertext, tag = cipher.encrypt_and_digest(f.read())
-    with open(os.path.join(new_submission_dir, "encrypted_predictions.bin"), 'wb') as file_handler:
+    with open(os.path.join(new_submission_dir, "encrypted_predictions.bin"), 'wb') as fh:
         for x in (cipher.nonce, ciphertext, tag):
-            file_handler.write(x)
+            fh.write(x)
 
     # Encrypt and save originator file.
     cipher = AES.new(symmetric_key, AES.MODE_GCM)
@@ -113,8 +113,8 @@ def encrypt_csv(file_name: str, submitter_address: str,
     # Encrypt and save symmetric key using Competition public key for this challenge.
     cipher = PKCS1_OAEP.new(public_key)
     encrypted_symmetric_key = cipher.encrypt(symmetric_key)
-    with open(os.path.join(new_submission_dir, 'encrypted_symmetric_key.pem'), 'wb') as file_handler:
-        file_handler.write(encrypted_symmetric_key)
+    with open(os.path.join(new_submission_dir, 'encrypted_symmetric_key.pem'), 'wb') as fh:
+        fh.write(encrypted_symmetric_key)
     return new_submission_dir, symmetric_key
 
 
