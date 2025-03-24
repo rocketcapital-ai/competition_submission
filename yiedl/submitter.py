@@ -12,6 +12,7 @@ from Crypto.PublicKey import RSA
 
 from yiedl import contracts
 from yiedl import tools
+from yiedl import settings
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 class Submitter:
     def __init__(self, jwt: str, address: str,
                  comp_params: tools.CompetitionParams,
-                 private_key=None, *, url=tools.CFG['RPC_GATEWAY'],
+                 private_key=None, *, url=settings.RPC_GATEWAY,
                  verbose: bool = True):
         """
         @param verbose: (optional) Defaults to True. Prints method details.
@@ -27,7 +28,7 @@ class Submitter:
         self._w3 = web3.Web3(
             web3.Web3.HTTPProvider(
                 url,
-                request_kwargs={'timeout': tools.CFG['W3_TIMEOUT']}
+                request_kwargs={'timeout': settings.W3_TIMEOUT}
             )
         )
         # disabling strict byte checking...
@@ -52,14 +53,14 @@ class Submitter:
             self._controlling_account = None
 
         # Load Token interface.
-        path = os.path.join(tools.CURRENT_DIR, tools.CFG['JSON_DIRECTORY'], 'Token.json')
+        path = os.path.join(tools.CURRENT_DIR, settings.JSON_DIRECTORY, 'Token.json')
         with open(path, "r") as f:
             token_json = json.load(f)
         self._token = contracts.Token(
-            token_json, self._w3, tools.TOKEN_ADDRESS, self._controlling_account)
+            token_json, self._w3, settings.TOKEN, self._controlling_account)
 
         # Load Competition interface.
-        path = os.path.join(tools.CURRENT_DIR, tools.CFG['JSON_DIRECTORY'], 'Competition.json')
+        path = os.path.join(tools.CURRENT_DIR, settings.JSON_DIRECTORY, 'Competition.json')
         with open(path) as f:
             competition_json = json.load(f)
         self._competition = contracts.Competition(
@@ -110,7 +111,7 @@ class Submitter:
                   Returns None if no submission has been made.
         """
         cid = tools.hash_to_cid(self._competition.getSubmission(challenge_number, self._address))
-        if cid == tools.CFG['NULL_IPFS_CID']:
+        if cid == settings.NULL_IPFS_CID:
             return None
         return cid
 
@@ -125,11 +126,11 @@ class Submitter:
             challenge_number = self._competition.getLatestChallengeNumber()
         dataset_hash = self._competition.getDatasetHash(challenge_number).hex()
         dataset_cid = tools.hash_to_cid(dataset_hash)
-        if dataset_cid == tools.CFG['NULL_IPFS_CID']:
+        if dataset_cid == settings.NULL_IPFS_CID:
             assert False, 'Dataset for this challenge does not exist.'
         if destination_directory is None:
             destination_directory = os.path.join(
-                tools.CURRENT_DIR, "..", tools.CFG['DATASET_DIRECTORY'],
+                tools.CURRENT_DIR, "..", settings.DATASET_DIRECTORY,
                 f"challenge_{challenge_number}")
         os.makedirs(destination_directory, exist_ok=True)
         destination_file = os.path.join(destination_directory, 'dataset.zip')
