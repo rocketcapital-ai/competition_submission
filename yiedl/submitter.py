@@ -97,7 +97,7 @@ class Submitter:
         """
         @returns: Amount of MATIC in Submitter's wallet.
         """
-        return tools.uint_to_decimal(self._w3.eth.get_balance(self._address))
+        return tools.uint_to_decimal(self._w3.eth.get_balance(self._address), decimal_places=18)
 
     def get_stake(self) -> Decimal:
         """

@@ -1,6 +1,6 @@
 """ global settings """
 
-GAS_PRICE_URL =  'https://gasstation.polygon.technology/v2'
+GAS_PRICE_URL = 'https://gasstation.polygon.technology/v2'
 IPFS_API_URL = 'https://api.pinata.cloud'
 IPFS_DEFAULT = 'bafybeifx7yeb55armcsxwwitkymga5xf53dxiarykms3ygqic223w5sk3m#x-ipfs-companion-no-redirect'
 IPFS_GATEWAY = 'https://gateway.pinata.cloud/ipfs'
