@@ -11,29 +11,18 @@ from typing import Callable
 
 import requests
 import base58
-import yaml
 import web3
 
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
 
+from yiedl import settings
+
 logger = logging.getLogger(__name__)
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 ROOT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
-with open(os.path.join(ROOT_DIR, "cfg_files", "cfg.yml"), "r") as config_file:
-    CFG = yaml.safe_load(config_file)
-
-TOKEN_ADDRESS = CFG['LIVE']['TOKEN']
-UPDOWN_ADDRESS = CFG['LIVE']['UPDOWN_ADDRESS']
-
-UPDOWN_DIRECTORY = os.path.join(ROOT_DIR, CFG['UPDOWN_SUBMISSION_FOLDER_NAME'])
-UPDOWN_ENCRYPTED_DIRECTORY = os.path.join(ROOT_DIR, CFG['UPDOWN_ENCRYPTED_SUBMISSIONS'])
-
-NEUTRAL_ADDRESS = CFG['LIVE']['NEUTRAL_ADDRESS']
-NEUTRAL_DIRECTORY = os.path.join(ROOT_DIR, CFG['NEUTRAL_SUBMISSION_FOLDER_NAME'])
-NEUTRAL_ENCRYPTED_DIRECTORY = os.path.join(ROOT_DIR, CFG['NEUTRAL_ENCRYPTED_SUBMISSIONS'])
 
 
 @dataclass
@@ -44,8 +33,15 @@ class CompetitionParams:
     encrypted_directory: str
 
 
-UPDOWN_COMP = CompetitionParams(UPDOWN_ADDRESS, UPDOWN_DIRECTORY, UPDOWN_ENCRYPTED_DIRECTORY)
-NEUTRAL_COMP = CompetitionParams(NEUTRAL_ADDRESS, NEUTRAL_DIRECTORY, NEUTRAL_ENCRYPTED_DIRECTORY)
+UPDOWN_COMP = CompetitionParams(
+    settings.UPDOWN_ADDRESS,
+    os.path.join(ROOT_DIR, settings.UPDOWN_SUBMISSION_FOLDER_NAME),
+    os.path.join(ROOT_DIR, settings.UPDOWN_ENCRYPTED_SUBMISSIONS))
+NEUTRAL_COMP = CompetitionParams(
+    settings.NEUTRAL_ADDRESS,
+    os.path.join(ROOT_DIR, settings.NEUTRAL_SUBMISSION_FOLDER_NAME),
+    os.path.join(ROOT_DIR, settings.NEUTRAL_ENCRYPTED_SUBMISSIONS))
+
 
 @dataclass
 class GasPriceMode:
@@ -102,9 +98,9 @@ def encrypt_csv(file_name: str, submitter_address: str,
     cipher = AES.new(symmetric_key, AES.MODE_GCM)
     with open(os.path.join(submission_directory, file_name), 'rb') as f:
         ciphertext, tag = cipher.encrypt_and_digest(f.read())
-    with open(os.path.join(new_submission_dir, "encrypted_predictions.bin"), 'wb') as file_handler:
+    with open(os.path.join(new_submission_dir, "encrypted_predictions.bin"), 'wb') as fh:
         for x in (cipher.nonce, ciphertext, tag):
-            file_handler.write(x)
+            fh.write(x)
 
     # Encrypt and save originator file.
     cipher = AES.new(symmetric_key, AES.MODE_GCM)
@@ -117,8 +113,8 @@ def encrypt_csv(file_name: str, submitter_address: str,
     # Encrypt and save symmetric key using Competition public key for this challenge.
     cipher = PKCS1_OAEP.new(public_key)
     encrypted_symmetric_key = cipher.encrypt(symmetric_key)
-    with open(os.path.join(new_submission_dir, 'encrypted_symmetric_key.pem'), 'wb') as file_handler:
-        file_handler.write(encrypted_symmetric_key)
+    with open(os.path.join(new_submission_dir, 'encrypted_symmetric_key.pem'), 'wb') as fh:
+        fh.write(encrypted_symmetric_key)
     return new_submission_dir, symmetric_key
 
 
@@ -127,7 +123,7 @@ def get_avg_gas_price_in_gwei(mode=GasPriceMode.fast, retry_seconds: int = 3,
     """fetch average gas price"""
     for tries in range(num_retries):
         try:
-            result = requests.get(CFG['GAS_PRICE_URL'], timeout=CFG['REQUESTS_TIMEOUT']).json()
+            result = requests.get(settings.GAS_PRICE_URL, timeout=settings.REQUESTS_TIMEOUT).json()
             avg_gas_price_in_gwei = result[mode]["maxFee"]
             base_gas_price_in_gwei = get_base_gas_price_in_gwei()
             if avg_gas_price_in_gwei < (base_gas_price_in_gwei * 1.13):
@@ -165,8 +161,8 @@ def network_read(params: list, method="eth_call", retry_seconds=3, num_retries=1
     payload = {"jsonrpc": "2.0", "method": method, "params": params, "id": 1}
     headers = {"Content-Type": "application/json"}
     for _ in range(num_retries):
-        r = requests.post(CFG['RPC_GATEWAY'], headers=headers,
-                          json=payload, timeout=CFG['REQUESTS_TIMEOUT'])
+        r = requests.post(settings.RPC_GATEWAY, headers=headers,
+                          json=payload, timeout=settings.REQUESTS_TIMEOUT)
         if r.ok:
             keys = r.json().keys()
             if "result" in keys:
@@ -183,7 +179,7 @@ def network_read(params: list, method="eth_call", retry_seconds=3, num_retries=1
 def pin_file_to_ipfs(filename: str, jwt: str, cid_version=0,
                      retry_seconds=3, num_retries=10) -> str | None:
     """try pinning a file to IPFS"""
-    url = f"{CFG['IPFS_API_URL']}/pinning/pinFileToIPFS"
+    url = f"{settings.IPFS_API_URL}/pinning/pinFileToIPFS"
     headers = {"Authorization": "Bearer " + jwt}
     for tries in range(num_retries):
         try:
@@ -191,7 +187,7 @@ def pin_file_to_ipfs(filename: str, jwt: str, cid_version=0,
                 files = {"file": f}
                 params = {"cidVersion": cid_version}
                 response = requests.post(url, headers=headers, files=files,
-                    params=params, timeout=CFG['REQUESTS_TIMEOUT'])
+                    params=params, timeout=settings.REQUESTS_TIMEOUT)
                 response_json = response.json()
                 logger.info(
                     'Pinned payload with size %s bytes to %s at %s.',
@@ -203,7 +199,7 @@ def pin_file_to_ipfs(filename: str, jwt: str, cid_version=0,
         except Exception:
             if tries == num_retries - 1:
                 msg = ("File could not be uploaded and pinned to IPFS. Please try again later "
-                       f"or contact {CFG['SUPPORT_EMAIL']} for support.")
+                       f"or contact {settings.SUPPORT_EMAIL} for support.")
                 assert False, msg
             time.sleep(retry_seconds)
     return None
@@ -221,15 +217,15 @@ def retrieve_content(cid, retry_seconds=3, num_retries=10):
     """retrive file from IPFS gateway"""
     for tries in range(num_retries):
         try:
-            url = f"{CFG['IPFS_GATEWAY']}/{CFG['IPFS_DEFAULT']}"
-            requests.get(url, timeout=CFG['REQUESTS_TIMEOUT'])
-            r = requests.get(f"{CFG['IPFS_GATEWAY']}/{cid}", timeout=CFG['REQUESTS_TIMEOUT'])
+            url = f"{settings.IPFS_GATEWAY}/{settings.IPFS_DEFAULT}"
+            requests.get(url, timeout=settings.REQUESTS_TIMEOUT)
+            r = requests.get(f"{settings.IPFS_GATEWAY}/{cid}", timeout=settings.REQUESTS_TIMEOUT)
             return r.content
         except Exception as e:
             logger.warning(e)
             if tries == num_retries - 1:
                 msg = ('File could not be retrieved. Please try again later'
-                       f'or contact {CFG["SUPPORT_EMAIL"]} for support.')
+                       f'or contact {settings.SUPPORT_EMAIL} for support.')
                 assert False, msg
             time.sleep(retry_seconds)
     return None
@@ -247,7 +243,8 @@ def send_transaction(w3: web3.Web3, controlling_account, method: Callable,
     signed_tx = w3.eth.account.sign_transaction(tx_data, controlling_account._private_key)
     tx_id = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
     logger.info('Sending transaction %s', tx_id.hex())
-    tx_receipt = w3.eth.wait_for_transaction_receipt(tx_id, CFG['W3_TIMEOUT'], CFG['W3_INTERVAL'])
+    tx_receipt = w3.eth.wait_for_transaction_receipt(
+        tx_id, settings.W3_TIMEOUT, settings.W3_INTERVAL)
     logger.info('Transaction sent. Tx ID: %s', tx_id.hex())
     return tx_receipt
 

@@ -3,7 +3,7 @@
 
 import web3
 from web3 import types
-from lib.core_tools import tools
+from yiedl import tools
 
 
 class Competition:

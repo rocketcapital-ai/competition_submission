@@ -7,12 +7,10 @@
 
 Python Version Requirement: >= 3.11
 
-Please install the following external modules.
-- [pip install base58](https://pypi.org/project/base58/)
-- [pip install PyYAML](https://pypi.org/project/PyYAML/)
-- [pip install requests](https://pypi.org/project/requests/)
-- [pip install web3](https://pypi.org/project/web3/)
-- [pip install pandas](https://pypi.org/project/pandas/)
+Install Yiedl submission client.
+
+    pip install -I git+https://github.com/rocketcapital-ai/competition_submission.git
+
 
 In the first code cell of `quickstart.ipynb`, you will need to fill in 3 fields.
 1. `jwt`. This is your personal [pinata](https://pinata.cloud) access key.
