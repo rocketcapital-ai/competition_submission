@@ -16,7 +16,8 @@ import web3
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
-
+from eth_account.account import LocalAccount
+from web3.types import TxReceipt
 from yiedl import settings
 
 logger = logging.getLogger(__name__)
@@ -63,7 +64,7 @@ def decimal_to_uint(decimal_value: Decimal | float | int, decimal_places=6) -> i
 
 
 def decrypt_file(file_name: str, decrypt_key_file: str, decrypted_file_name=None) -> str:
-    """decript a file using the provided key file"""
+    """decrypt a file using the provided key file"""
     with open(decrypt_key_file, 'rb') as key_f:
         decrypted_key = key_f.read()
     with open(file_name, 'rb') as enc_f:
@@ -156,7 +157,7 @@ def hash_to_cid(hash_obj: bytes | bytearray | str) -> str:
     return base58.b58encode_int(hash_obj).decode('utf-8')
 
 
-def network_read(params: list, method="eth_call", retry_seconds=3, num_retries=10) -> str:
+def network_read(params: list, method="eth_call", retry_seconds=3, num_retries=10) -> dict:
     """fetch result from RPC gateway"""
     payload = {"jsonrpc": "2.0", "method": method, "params": params, "id": 1}
     headers = {"Content-Type": "application/json"}
@@ -186,8 +187,12 @@ def pin_file_to_ipfs(filename: str, jwt: str, cid_version=0,
             with open(filename, 'rb') as f:
                 files = {"file": f}
                 params = {"cidVersion": cid_version}
-                response = requests.post(url, headers=headers, files=files,
-                    params=params, timeout=settings.REQUESTS_TIMEOUT)
+                response = requests.post(url,
+                                         headers=headers,
+                                         files=files,
+                                         params=params,
+                                         timeout=settings.REQUESTS_TIMEOUT
+                                         )
                 response_json = response.json()
                 logger.info(
                     'Pinned payload with size %s bytes to %s at %s.',
@@ -231,8 +236,8 @@ def retrieve_content(cid, retry_seconds=3, num_retries=10):
     return None
 
 
-def send_transaction(w3: web3.Web3, controlling_account, method: Callable,
-                     args: list, gas_price_in_wei: int) -> web3.types.TxReceipt:
+def send_transaction(w3: web3.Web3, controlling_account: LocalAccount, method: Callable,
+                     args: list, gas_price_in_wei: int) -> TxReceipt:
     """build, sign and send a transaction"""
     assert controlling_account is not None, 'Private key required to send blockchain transactions.'
     tx_data = method(*args).build_transaction({
