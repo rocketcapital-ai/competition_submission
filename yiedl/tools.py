@@ -23,7 +23,6 @@ from yiedl import settings
 logger = logging.getLogger(__name__)
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
-ROOT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
 
 
 @dataclass
