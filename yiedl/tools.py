@@ -94,12 +94,13 @@ def encrypt_csv(file_path: str, submitter_address: str,
     if file_path.split('.')[-1] != 'csv':
         assert False, 'Please input a .csv file.'
 
-    # copy submission file to submission directory
-    shutil.copy(file_path, submission_directory)
+    # # copy submission file to submission directory
+    # os.makedirs(submission_directory, exist_ok=True)
+    # shutil.copy(file_path, submission_directory)
 
     # Encrypt and save predictions file.
     cipher = AES.new(symmetric_key, AES.MODE_GCM)
-    with open(os.path.join(submission_directory, file_path), 'rb') as f:
+    with open(file_path, 'rb') as f:
         ciphertext, tag = cipher.encrypt_and_digest(f.read())
     with open(os.path.join(new_submission_dir, "encrypted_predictions.bin"), 'wb') as fh:
         for x in (cipher.nonce, ciphertext, tag):
