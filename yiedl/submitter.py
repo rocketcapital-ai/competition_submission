@@ -197,11 +197,11 @@ class Submitter:
                     assert False, 'Insufficient YIEDL allowance for competition contract.'
         return delta
 
-    def _prepare_submission_file(self, file_name: str) -> str:
+    def _prepare_submission_file(self, file_path: str) -> str:
         """
         Prepares a submission file for encryption and submission.
-        @param file_name: Name of csv file in the
-        'updown_file_to_submit' or 'neutral_file_to_submit' folder.
+        @param file_path: Path of the csv file to submit.
+        Relative to the calling script or notebook.
         Please include the .csv extension.
         @return: CID of the prepared submission file.
         """
@@ -215,7 +215,7 @@ class Submitter:
         public_key_hash = self._competition.getKeyHash(challenge_number)
         public_key_content = tools.retrieve_content(tools.hash_to_cid(public_key_hash))
         public_key = RSA.import_key(public_key_content)
-        submission_dir, symmetric_key = tools.encrypt_csv(file_name, self._address,
+        submission_dir, symmetric_key = tools.encrypt_csv(file_path, self._address,
                                                           self._comp_params.submission_directory,
                                                           self._comp_params.encrypted_directory,
                                                           public_key)

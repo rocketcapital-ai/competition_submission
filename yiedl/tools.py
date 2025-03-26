@@ -81,7 +81,7 @@ def decrypt_file(file_name: str, decrypt_key_file: str, decrypted_file_name=None
     return decrypted_file_name
 
 
-def encrypt_csv(file_name: str, submitter_address: str,
+def encrypt_csv(file_path: str, submitter_address: str,
                 submission_directory: str, encrypted_directory: str,
                 public_key: RSA.RsaKey) -> tuple[str, bytes]:
     """encrypt a csv file"""
@@ -91,12 +91,15 @@ def encrypt_csv(file_name: str, submitter_address: str,
         encrypted_directory, datetime.datetime.now().strftime('%Y-%m-%d_%Hh%Mm%Ss'))
     os.makedirs(new_submission_dir, exist_ok=False)
 
-    if file_name.split('.')[-1] != 'csv':
+    if file_path.split('.')[-1] != 'csv':
         assert False, 'Please input a .csv file.'
+
+    # copy submission file to submission directory
+    shutil.copy(file_path, submission_directory)
 
     # Encrypt and save predictions file.
     cipher = AES.new(symmetric_key, AES.MODE_GCM)
-    with open(os.path.join(submission_directory, file_name), 'rb') as f:
+    with open(os.path.join(submission_directory, file_path), 'rb') as f:
         ciphertext, tag = cipher.encrypt_and_digest(f.read())
     with open(os.path.join(new_submission_dir, "encrypted_predictions.bin"), 'wb') as fh:
         for x in (cipher.nonce, ciphertext, tag):
