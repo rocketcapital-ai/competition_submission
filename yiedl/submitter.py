@@ -201,7 +201,8 @@ class Submitter:
         """
         Prepares a submission file for encryption and submission.
         @param file_path: Path of the csv file to submit.
-        Relative to the calling script or notebook.
+        Relative to the calling script/notebook or
+        absolute path to the file.
         Please include the .csv extension.
         @return: CID of the prepared submission file.
         """
@@ -437,15 +438,17 @@ class Submitter:
         self._competition.acceptStakingDelegationFor(self._address, gas_price_in_wei)
         return True
 
-    def download_and_check(self, original_submission_file_name: str, keep_temp_files=False) -> bool:
+    def download_and_check(self, original_submission_file_path: str, keep_temp_files=False) -> bool:
         """
         Downloads the submitted file associated with the submitter's wallet address from
         the blockchain and IPFS, then decrypts it using the local key and compares it with the
         original submission file.
-        @param original_submission_file_name: Name of csv file in the 'updown_file_to_submit' or
-            'neutral_file_to_submit' folder. Please include the .csv extension.
+        @param original_submission_file_path: Path of the original submission file.
+            Relative to the calling script/notebook or
+            absolute path to the file.
+            Please include the .csv extension.
         @param keep_temp_files: (optional):
-            Whether or not to retain the retrieved and decrypted files.
+            Whether to retain the retrieved and decrypted files.
         @return: True if the retrieved submission file is identical to
             the local original submission file.
         """
@@ -465,9 +468,7 @@ class Submitter:
         decrypted_file_name = os.path.join(unzipped, f'{cid}.csv')
         tools.decrypt_file(file_to_decrypt, symmetric_key_path, decrypted_file_name)
         logger.info('File decrypted. Comparing files.')
-        original = pd.read_csv(
-            os.path.join(self._comp_params.submission_directory,
-                original_submission_file_name))
+        original = pd.read_csv(original_submission_file_path)
         retrieved = pd.read_csv(decrypted_file_name)
         if not keep_temp_files:
             logger.info('Removing temp files.')
