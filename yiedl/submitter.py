@@ -182,7 +182,6 @@ class Submitter:
         @param gas_price_in_gwei: (optional) Defaults to the "fast" gas price from
         polygonscan.com/gastracker. Otherwise an explicit gwei value can be stated here,
         or one of the three GasPriceMode modes.
-        @param verbose: (optional) Defaults to True. Prints transaction details.
         @return: The difference between the current allowance and the desired amount.
         """
         current_stake_uint = tools.decimal_to_uint(self.get_stake())
@@ -217,7 +216,6 @@ class Submitter:
         public_key_content = tools.retrieve_content(tools.hash_to_cid(public_key_hash))
         public_key = RSA.import_key(public_key_content)
         submission_dir, symmetric_key = tools.encrypt_csv(file_path, self._address,
-                                                          self._comp_params.submission_directory,
                                                           self._comp_params.encrypted_directory,
                                                           public_key)
         logger.info('Zipping encrypted file.')

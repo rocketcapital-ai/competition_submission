@@ -29,17 +29,14 @@ ROOT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 class CompetitionParams:
     """competitions settings"""
     address: str
-    submission_directory: str
     encrypted_directory: str
 
 
 UPDOWN_COMP = CompetitionParams(
     settings.UPDOWN_ADDRESS,
-    os.path.join(ROOT_DIR, settings.UPDOWN_SUBMISSION_FOLDER_NAME),
     os.path.join(ROOT_DIR, settings.UPDOWN_ENCRYPTED_SUBMISSIONS))
 NEUTRAL_COMP = CompetitionParams(
     settings.NEUTRAL_ADDRESS,
-    os.path.join(ROOT_DIR, settings.NEUTRAL_SUBMISSION_FOLDER_NAME),
     os.path.join(ROOT_DIR, settings.NEUTRAL_ENCRYPTED_SUBMISSIONS))
 
 
@@ -81,8 +78,9 @@ def decrypt_file(file_name: str, decrypt_key_file: str, decrypted_file_name=None
     return decrypted_file_name
 
 
-def encrypt_csv(file_path: str, submitter_address: str,
-                submission_directory: str, encrypted_directory: str,
+def encrypt_csv(file_path: str,
+                submitter_address: str,
+                encrypted_directory: str,
                 public_key: RSA.RsaKey) -> tuple[str, bytes]:
     """encrypt a csv file"""
     symmetric_key = get_random_bytes(16)

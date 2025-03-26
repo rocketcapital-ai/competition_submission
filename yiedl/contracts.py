@@ -22,7 +22,7 @@ class Competition:
     def address(self) -> types.ChecksumAddress:
         return self._address
 
-    def getDatasetHash(self, challenge_number: int) -> str:
+    def getDatasetHash(self, challenge_number: int) -> str | bytes:
         return self._contract.functions.getDatasetHash(challenge_number).call()
 
     def getDeadlines(self, challenge_number: int, index: int) -> int:
