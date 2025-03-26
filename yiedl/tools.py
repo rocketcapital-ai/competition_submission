@@ -92,10 +92,6 @@ def encrypt_csv(file_path: str,
     if file_path.split('.')[-1] != 'csv':
         assert False, 'Please input a .csv file.'
 
-    # # copy submission file to submission directory
-    # os.makedirs(submission_directory, exist_ok=True)
-    # shutil.copy(file_path, submission_directory)
-
     # Encrypt and save predictions file.
     cipher = AES.new(symmetric_key, AES.MODE_GCM)
     with open(file_path, 'rb') as f:

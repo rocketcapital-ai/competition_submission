@@ -230,31 +230,35 @@ class Submitter:
             f.write(symmetric_key)
         return cid
 
-    def submit(self, file_name: str, gas_price_in_gwei=None) -> bool:
+    def submit(self, file_path: str, gas_price_in_gwei=None) -> bool:
         """
         Submits a new prediction or updates an existing prediction.
         Stake amount must already be set by calling `set_stake`.
-        @param file_name: Name of csv file in the 'updown_file_to_submit'
-        or 'neutral_file_to_submit' folder. Please include the .csv extension.
+        @param file_path: Path of the csv file to submit.
+        Relative to the calling script/notebook or
+        absolute path to the file.
+        Please include the .csv extension.
         @param gas_price_in_gwei: (optional) Defaults to the "fast" gas price
         from polygonscan.com/gastracker. Otherwise an explicit gwei value can be stated here,
         or one of the three GasPriceMode modes.
         @return: True if completed successfully.
         """
-        cid = self._prepare_submission_file(file_name)
+        cid = self._prepare_submission_file(file_path)
         gas_price_in_wei = tools.set_gas_price_in_gwei(gas_price_in_gwei)
         logger.info('Submitting to blockchain.')
         self._competition.submit(tools.cid_to_hash(cid), gas_price_in_wei)
         return True
 
-    def stake_and_submit(self, amount: Decimal | float | int, file_name: str,
+    def stake_and_submit(self, amount: Decimal | float | int, file_path: str,
                          auto_approve=True, gas_price_in_gwei=None) -> bool:
         """
         Submits a new prediction or updates an existing prediction along with a stake amount.
         @param amount: Amount to set stake to.
-        @param file_name: Name of csv file in the 'updown_file_to_submit' or
-            'neutral_file_to_submit' folder. Please include the .csv extension.
-            @param auto_approve: (optional) Defaults to True.
+        @param file_path: Path of the csv file to submit.
+        Relative to the calling script/notebook or
+        absolute path to the file.
+        Please include the .csv extension.
+        @param auto_approve: (optional) Defaults to True.
         If True, automatically approves the competition contract to
         spend YIEDL on submitter's behalf where required.
         @param gas_price_in_gwei: (optional) Defaults to the "fast" gas price
@@ -262,7 +266,7 @@ class Submitter:
         Otherwise an explicit gwei value can be stated here, or one of the three GasPriceMode modes.
         @return: True if completed successfully.
         """
-        cid = self._prepare_submission_file(file_name)
+        cid = self._prepare_submission_file(file_path)
         gas_price_in_wei = tools.set_gas_price_in_gwei(gas_price_in_gwei)
         logger.info('Submitting to blockchain.')
         self._manage_allowance(amount, auto_approve, gas_price_in_gwei)
