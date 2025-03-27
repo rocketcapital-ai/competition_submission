@@ -16,30 +16,27 @@ import web3
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
-
+from eth_account.account import LocalAccount
+from web3.types import TxReceipt
 from yiedl import settings
 
 logger = logging.getLogger(__name__)
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
-ROOT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
-
+ROOT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 
 @dataclass
 class CompetitionParams:
     """competitions settings"""
     address: str
-    submission_directory: str
     encrypted_directory: str
 
 
 UPDOWN_COMP = CompetitionParams(
     settings.UPDOWN_ADDRESS,
-    os.path.join(ROOT_DIR, settings.UPDOWN_SUBMISSION_FOLDER_NAME),
     os.path.join(ROOT_DIR, settings.UPDOWN_ENCRYPTED_SUBMISSIONS))
 NEUTRAL_COMP = CompetitionParams(
     settings.NEUTRAL_ADDRESS,
-    os.path.join(ROOT_DIR, settings.NEUTRAL_SUBMISSION_FOLDER_NAME),
     os.path.join(ROOT_DIR, settings.NEUTRAL_ENCRYPTED_SUBMISSIONS))
 
 
@@ -63,7 +60,7 @@ def decimal_to_uint(decimal_value: Decimal | float | int, decimal_places=6) -> i
 
 
 def decrypt_file(file_name: str, decrypt_key_file: str, decrypted_file_name=None) -> str:
-    """decript a file using the provided key file"""
+    """decrypt a file using the provided key file"""
     with open(decrypt_key_file, 'rb') as key_f:
         decrypted_key = key_f.read()
     with open(file_name, 'rb') as enc_f:
@@ -81,8 +78,9 @@ def decrypt_file(file_name: str, decrypt_key_file: str, decrypted_file_name=None
     return decrypted_file_name
 
 
-def encrypt_csv(file_name: str, submitter_address: str,
-                submission_directory: str, encrypted_directory: str,
+def encrypt_csv(file_path: str,
+                submitter_address: str,
+                encrypted_directory: str,
                 public_key: RSA.RsaKey) -> tuple[str, bytes]:
     """encrypt a csv file"""
     symmetric_key = get_random_bytes(16)
@@ -91,12 +89,12 @@ def encrypt_csv(file_name: str, submitter_address: str,
         encrypted_directory, datetime.datetime.now().strftime('%Y-%m-%d_%Hh%Mm%Ss'))
     os.makedirs(new_submission_dir, exist_ok=False)
 
-    if file_name.split('.')[-1] != 'csv':
+    if file_path.split('.')[-1] != 'csv':
         assert False, 'Please input a .csv file.'
 
     # Encrypt and save predictions file.
     cipher = AES.new(symmetric_key, AES.MODE_GCM)
-    with open(os.path.join(submission_directory, file_name), 'rb') as f:
+    with open(file_path, 'rb') as f:
         ciphertext, tag = cipher.encrypt_and_digest(f.read())
     with open(os.path.join(new_submission_dir, "encrypted_predictions.bin"), 'wb') as fh:
         for x in (cipher.nonce, ciphertext, tag):
@@ -156,7 +154,7 @@ def hash_to_cid(hash_obj: bytes | bytearray | str) -> str:
     return base58.b58encode_int(hash_obj).decode('utf-8')
 
 
-def network_read(params: list, method="eth_call", retry_seconds=3, num_retries=10) -> str:
+def network_read(params: list, method="eth_call", retry_seconds=3, num_retries=10) -> dict:
     """fetch result from RPC gateway"""
     payload = {"jsonrpc": "2.0", "method": method, "params": params, "id": 1}
     headers = {"Content-Type": "application/json"}
@@ -186,8 +184,12 @@ def pin_file_to_ipfs(filename: str, jwt: str, cid_version=0,
             with open(filename, 'rb') as f:
                 files = {"file": f}
                 params = {"cidVersion": cid_version}
-                response = requests.post(url, headers=headers, files=files,
-                    params=params, timeout=settings.REQUESTS_TIMEOUT)
+                response = requests.post(url,
+                                         headers=headers,
+                                         files=files,
+                                         params=params,
+                                         timeout=settings.REQUESTS_TIMEOUT
+                                         )
                 response_json = response.json()
                 logger.info(
                     'Pinned payload with size %s bytes to %s at %s.',
@@ -231,8 +233,8 @@ def retrieve_content(cid, retry_seconds=3, num_retries=10):
     return None
 
 
-def send_transaction(w3: web3.Web3, controlling_account, method: Callable,
-                     args: list, gas_price_in_wei: int) -> web3.types.TxReceipt:
+def send_transaction(w3: web3.Web3, controlling_account: LocalAccount, method: Callable,
+                     args: list, gas_price_in_wei: int) -> TxReceipt:
     """build, sign and send a transaction"""
     assert controlling_account is not None, 'Private key required to send blockchain transactions.'
     tx_data = method(*args).build_transaction({

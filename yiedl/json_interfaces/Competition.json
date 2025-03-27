@@ -642,6 +642,25 @@
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "submitter",
+          "type": "address"
+        }
+      ],
+      "name": "acceptStakingDelegationFor",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "uint8",
           "name": "phase",
           "type": "uint8"
@@ -690,7 +709,45 @@
           "type": "uint32"
         }
       ],
+      "name": "challengeBurns",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
       "name": "challengeOpenedBlockNumbers",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "name": "challengePayments",
       "outputs": [
         {
           "internalType": "uint256",
@@ -718,16 +775,21 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "staker",
+          "name": "invitedStaker",
           "type": "address"
         },
         {
-          "internalType": "uint256",
-          "name": "amountToken",
-          "type": "uint256"
+          "internalType": "address",
+          "name": "submitter",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "isCancel",
+          "type": "bool"
         }
       ],
-      "name": "decreaseStake",
+      "name": "delegateStaking",
       "outputs": [
         {
           "internalType": "bool",
@@ -927,6 +989,25 @@
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "submitter",
+          "type": "address"
+        }
+      ],
+      "name": "getDelegate",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "delegated",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "uint32",
           "name": "challengeNumber",
           "type": "uint32"
@@ -1058,6 +1139,25 @@
           "internalType": "uint256",
           "name": "value",
           "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "submitter",
+          "type": "address"
+        }
+      ],
+      "name": "getInvited",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "invited",
+          "type": "address"
         }
       ],
       "stateMutability": "view",
@@ -1574,30 +1674,6 @@
     {
       "inputs": [
         {
-          "internalType": "address",
-          "name": "staker",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "amountToken",
-          "type": "uint256"
-        }
-      ],
-      "name": "increaseStake",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "success",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
           "internalType": "uint256",
           "name": "stakeThreshold_",
           "type": "uint256"
@@ -1782,6 +1858,25 @@
     {
       "inputs": [
         {
+          "internalType": "uint8",
+          "name": "phase",
+          "type": "uint8"
+        }
+      ],
+      "name": "retreatToPhase",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "bytes32",
           "name": "role",
           "type": "bytes32"
@@ -1803,9 +1898,57 @@
           "internalType": "uint256",
           "name": "amountToken",
           "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "submitter",
+          "type": "address"
+        }
+      ],
+      "name": "setStake",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amountToken",
+          "type": "uint256"
         }
       ],
       "name": "sponsor",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amountToken",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "submissionHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "stakeAndSubmit",
       "outputs": [
         {
           "internalType": "bool",
@@ -1837,11 +1980,6 @@
     },
     {
       "inputs": [
-        {
-          "internalType": "address",
-          "name": "staker",
-          "type": "address"
-        },
         {
           "internalType": "bytes32",
           "name": "submissionHash",
@@ -1954,11 +2092,6 @@
       "inputs": [
         {
           "internalType": "bytes32",
-          "name": "oldDatasetHash",
-          "type": "bytes32"
-        },
-        {
-          "internalType": "bytes32",
           "name": "newDatasetHash",
           "type": "bytes32"
         }
@@ -2039,11 +2172,6 @@
     },
     {
       "inputs": [
-        {
-          "internalType": "bytes32",
-          "name": "oldKeyHash",
-          "type": "bytes32"
-        },
         {
           "internalType": "bytes32",
           "name": "newKeyHash",
