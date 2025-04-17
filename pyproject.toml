@@ -11,6 +11,8 @@ dependencies = [
     "web3>=7.7.0",
     "pandas>=2.2.3",
 ]
+[project.optional-dependencies]
+test = ["pylint"]
 
 [project.urls]
 Repository = "https://github.com/rocketcapital-ai/competition_submission"
