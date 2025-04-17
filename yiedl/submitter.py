@@ -43,7 +43,8 @@ class Submitter:
                 self._comp_params = tools.NEUTRAL_COMP
             case "UPDOWN":
                 self._comp_params = tools.UPDOWN_COMP
-            case _: raise ValueError("unknown competition", competition)
+            case _:
+                raise ValueError("unknown competition", competition)
 
         if verbose:
             logging.basicConfig(level=logging.INFO)
