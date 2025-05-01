@@ -1,5 +1,5 @@
 [project]
-name = "yiedl"
+name = "yiedl-ai"
 version = "0.2.0"
 description = "Programmaticaly interact with the yiedl machine learning competition"
 requires-python = ">=3.11"
