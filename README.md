@@ -1,7 +1,9 @@
+[![PyPI](https://img.shields.io/pypi/v/yiedl-ai.svg)](https://pypi.python.org/pypi/yiedl-ai)
+[![Downloads](https://pepy.tech/badge/yiedl-ai/month)](https://pepy.tech/project/yiedl-ai)
 
-# Submission Script
+# Yiedl API Client
 
-### Please refer to `quickstart.ipynb` as the main guide on submitting predictions programmatically.
+### Please refer to `quickstart.ipynb` as the main guide of interaction with the Yiedl competition programmatically.
 
 ## Getting Set Up
 
@@ -9,7 +11,7 @@ Python Version Requirement: >= 3.11
 
 Install Yiedl submission client.
 
-    pip install -I git+https://github.com/rocketcapital-ai/competition_submission.git
+    pip install yiedl-ai
 
 
 In the first code cell of `quickstart.ipynb`, you will need to fill in 3 fields.
