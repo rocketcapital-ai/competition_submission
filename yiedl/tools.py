@@ -144,10 +144,12 @@ def get_avg_gas_price_in_gwei(mode=GasPriceMode.fast, retry_seconds: int = 3,
         logger.warning(error_msg)
 
     # next we try to base our estimate on polygon gas station's values
+    # we include a multiplier to try to mitigate cases where the base gas is spiking
+    # but polygon gas station is lagging behind
     try:
         result = requests.get(settings.GAS_PRICE_URL, timeout=settings.REQUESTS_TIMEOUT).json()
         avg_gas_price_in_gwei = result[mode]["maxFee"]
-        return avg_gas_price_in_gwei
+        return avg_gas_price_in_gwei * settings.BASE_GAS_MULTIPLIER
     except Exception as e_gas_station:
         error_msg = f'Could not fetch gas price from polygon gas station: {e_gas_station}\n'
         error_msg += f'Falling back to hardcoded value: {settings.FALLBACK_GAS_PRICE_IN_GWEI} gwei'
