@@ -117,16 +117,14 @@ def encrypt_csv(file_path: str,
 
 
 def get_avg_gas_price_in_gwei(mode=GasPriceMode.fast, retry_seconds: int = 3,
-                              num_retries: int = 10) -> int | None:
+                              num_retries: int = 10) -> int:
     """fetch average gas price"""
     for tries in range(num_retries):
         try:
             result = requests.get(settings.GAS_PRICE_URL, timeout=settings.REQUESTS_TIMEOUT).json()
             avg_gas_price_in_gwei = result[mode]["maxFee"]
             base_gas_price_in_gwei = get_base_gas_price_in_gwei()
-            if avg_gas_price_in_gwei < (base_gas_price_in_gwei * 1.13):
-                continue
-            return avg_gas_price_in_gwei
+            return max(avg_gas_price_in_gwei, base_gas_price_in_gwei * settings.BASE_GAS_MULTIPLIER)
         except Exception as e1:
             if tries == num_retries - 1:
                 try:
@@ -134,7 +132,25 @@ def get_avg_gas_price_in_gwei(mode=GasPriceMode.fast, retry_seconds: int = 3,
                 except Exception as e2:
                     assert False, f'Unspecified error.\n{e2}'
             time.sleep(retry_seconds)
-    return None
+
+    # if all retries fail, we first base our estimate on the chain's base fee
+    try:
+        base_gas_price_in_gwei = get_base_gas_price_in_gwei()
+        return base_gas_price_in_gwei * settings.BASE_GAS_MULTIPLIER
+    except Exception as e_chain:
+        logger.warning(f'Could not fetch base gas price from chain: {e_chain}')
+
+    # next we try to base our estimate on polygon gas station's values
+    try:
+        result = requests.get(settings.GAS_PRICE_URL, timeout=settings.REQUESTS_TIMEOUT).json()
+        avg_gas_price_in_gwei = result[mode]["maxFee"]
+        return avg_gas_price_in_gwei
+    except Exception as e_gas_station:
+        logger.warning(f'Could not fetch gas price from polygon gas station: {e_gas_station}')
+
+    # as a last resort, we return a hardcoded fallback value
+    logger.warning(f'Falling back to hardcoded gas price value: {settings.FALLBACK_GAS_PRICE_IN_GWEI} gwei')
+    return settings.FALLBACK_GAS_PRICE_IN_GWEI
 
 
 def get_base_gas_price_in_gwei() -> int:
