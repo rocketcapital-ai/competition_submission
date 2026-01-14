@@ -17,3 +17,7 @@
 ## [0.2.1] - 2026-01-09
 ### Changed
 - More robust handling of polygon gas price calculations.
+
+## [0.2.2] - 2026-01-14
+### Changed
+- Allow access to the `Delegate` module.
