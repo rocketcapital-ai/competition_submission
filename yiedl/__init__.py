@@ -1,6 +1,6 @@
 """Yiedl competition client"""
-from yiedl.submitter import Submitter
 from yiedl.delegate import Delegate
+from yiedl.submitter import Submitter
 
 
 __all__ = [
