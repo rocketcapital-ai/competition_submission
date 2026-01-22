@@ -664,7 +664,7 @@ def get_account_address(private_key: str) -> str:
     @param private_key: Private key of the account.
     @returns: Address of the account associated with the private key.
     """
-    account = Account.from_key(private_key)
+    account = Account().from_key(private_key)
     return account.address
 
 
