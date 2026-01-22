@@ -9,7 +9,7 @@ Python Version Requirement: >= 3.11
 
 Install Yiedl submission client.
 
-    pip install -I git+https://github.com/rocketcapital-ai/competition_submission.git
+    pip install yiedl-ai
 
 
 In the first code cell of `quickstart.ipynb`, you will need to fill in 3 fields.

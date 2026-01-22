@@ -17,12 +17,16 @@ logger = logging.getLogger(__name__)
 class Delegate:
     """yiedl delegate client"""
     def __init__(self, jwt: str, address: str,
-                 competition: str = "neutral",
-                 private_key=None, *, url=settings.RPC_GATEWAY,
+                 competition: str = None,
+                 private_key=None, *, url=None,
                  verbose: bool = True):
         """
         @param verbose: (optional) Defaults to True. Prints method details.
         """
+        if competition is None:
+            competition = tools.CompetitionIds.NEUTRAL
+        if url is None:
+            url = settings.RPC_GATEWAY
         self._w3 = web3.Web3(
             web3.Web3.HTTPProvider(
                 url,

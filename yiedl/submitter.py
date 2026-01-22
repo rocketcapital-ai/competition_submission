@@ -19,13 +19,18 @@ logger = logging.getLogger(__name__)
 
 class Submitter:
     """yiedl submission client"""
+
     def __init__(self, jwt: str, address: str,
-                 competition: str = "neutral",
-                 private_key=None, *, url=settings.RPC_GATEWAY,
+                 competition: str = None,
+                 private_key=None, *, url=None,
                  verbose: bool = True):
         """
         @param verbose: (optional) Defaults to True. Prints method details.
         """
+        if competition is None:
+            competition = tools.CompetitionIds.NEUTRAL
+        if url is None:
+            url = settings.RPC_GATEWAY
         self._w3 = web3.Web3(
             web3.Web3.HTTPProvider(
                 url,
@@ -140,8 +145,130 @@ class Submitter:
             return None
         return cid
 
+    def download_and_unzip_weekly_dataset(
+            self,
+            destination_directory: str = None,
+            filename: str = None,
+            challenge_number: int = None,
+            ipfs_only: bool = False,
+            verify_latest: bool = True
+    ) -> str:
+        """
+        Downloads and unzips the weekly dataset.
+        First tries to retrieve from the server.
+        If that fails, then retrieves from IPFS.
+        @param destination_directory: (optional) Folder path in which to save and unzip the dataset.
+            Defaults to `settings.DATASET_DIRECTORY`.
+        @param filename: (optional) Filename to save the dataset zip file as. Defaults to
+            `settings.WEEKLY_DATASET_FILENAME`.
+        @param challenge_number: (optional) Challenge of which corresponding dataset should
+            be retrieved. Defaults to the current challenge.
+            Note that datasets from older challenges can only be retrieved from IPFS.
+        @param ipfs_only: (optional) Whether to only retrieve the dataset from IPFS,
+            skipping the server download.
+        @param verify_latest: (optional) Whether to verify that the downloaded file is for
+            the latest week and raise an error otherwise. Defaults to True.
+            If downloading an old dataset from a previous challenge, this is automatically set to False.
+        @return: Path of the unzipped dataset directory.
+        """
+        if destination_directory is None:
+            destination_directory = settings.DOWNLOADED_DATASET_DIRECTORY
+        if filename is None:
+            filename = settings.WEEKLY_DATASET_FILENAME
+
+        retrieve_from_server = not ipfs_only
+        cn_from_network = self._competition.getLatestChallengeNumber()
+        if challenge_number is None:
+            challenge_number = cn_from_network
+
+        if challenge_number != cn_from_network:
+            verify_latest = False
+            retrieve_from_server = False
+            logger.info(
+                "Downloading old dataset for challenge: %s. Retrieving from IPFS.",
+                challenge_number,
+            )
+
+        else:
+            phase = self._competition.getPhase(challenge_number)
+            if phase != 1:
+                logger.warning("The challenge is currently closed. You may be downloading an old dataset.")
+
+        dataset_hash = self._competition.getDatasetHash(challenge_number).hex()
+        dataset_cid = tools.hash_to_cid(dataset_hash)
+        if dataset_cid == settings.NULL_IPFS_CID:
+            raise RuntimeError(f'Dataset for challenge {challenge_number} does not exist.')
+        os.makedirs(destination_directory, exist_ok=True)
+        destination_file = os.path.join(destination_directory, filename)
+        if retrieve_from_server:
+            status = tools.download_weekly_yiedl_dataset(destination_file)
+            if status:
+                unzipped_dir = tools.unzip_dir(destination_file)
+                if unzipped_dir is None:
+                    logger.info("Unzip failed for server download; retrieving from IPFS.")
+                    retrieve_from_server = False
+                else:
+                    if verify_latest:
+                        verify_status = tools.verify_weekly_dataset_is_latest(unzipped_dir)
+                        if not verify_status:
+                            logger.info(
+                                "Could not verify that weekly dataset is for challenge %s, retrieving from IPFS.",
+                                challenge_number,
+                            )
+                            retrieve_from_server = False
+                        else:
+                            logger.info(
+                                "Successfully downloaded and verified weekly dataset for challenge %s to %s.",
+                                challenge_number,
+                                unzipped_dir,
+                            )
+                            return unzipped_dir
+                    else:
+                        logger.info(
+                            "Successfully downloaded weekly dataset for challenge %s to %s.",
+                            challenge_number,
+                            unzipped_dir,
+                        )
+                        return unzipped_dir
+            else:
+                retrieve_from_server = False
+                logger.info('Failed to download dataset from server, retrieving from IPFS.')
+
+        if not retrieve_from_server:
+            tools.remove_file(destination_file)
+            logger.info('Downloading dataset from IPFS..')
+            unzipped_dir = tools.stream_and_unzip_from_ipfs(
+                dataset_cid,
+                destination_file,
+                challenge_number
+            )
+
+            if unzipped_dir is None:
+                raise RuntimeError(f'Failed to unzip file at {destination_file}. '
+                                   f'Please check the file or try the download again.')
+
+            if verify_latest:
+                verify_status = tools.verify_weekly_dataset_is_latest(unzipped_dir)
+                if not verify_status:
+                    raise RuntimeError(f'Downloaded dataset for '
+                                       f'challenge {challenge_number} is not the latest.')
+                logger.info(
+                    "Successfully downloaded and verified weekly dataset for challenge %s to %s.",
+                    challenge_number,
+                    unzipped_dir,
+                )
+            else:
+                logger.info(
+                    "Successfully downloaded weekly dataset for challenge %s to %s.",
+                    challenge_number,
+                    unzipped_dir,
+                )
+            return unzipped_dir
+
     def get_dataset(self, destination_directory: str, challenge_number: int = None) -> str:
         """
+        Prefer using `download_and_unzip_weekly_dataset`. `get_dataset` is an older function that
+        downloads the weekly zip file from IPFS.
         @param destination_directory: Folder path in which to save the dataset zip file.
         @param challenge_number: (optional) Challenge of which corresponding dataset should
             be retrieved. Defaults to the current challenge.
@@ -479,3 +606,18 @@ class Submitter:
             os.remove(temp_zip)
             logger.info('Temp files removed.')
         return original.equals(retrieved)
+
+    def save_df_to_csv(self, df: pd.DataFrame, file_path: str = None) -> str:
+        """
+        Saves a DataFrame to a CSV file and submits it.
+        @param df: DataFrame containing predictions to submit.
+        @param file_path: (optional) Path of the csv file to save the df to.
+        @return: Path of the saved csv file if successful, None otherwise.
+        """
+        if file_path is None:
+            if self._comp_params.address == tools.NEUTRAL_COMP.address:
+                file_path = settings.NEUTRAL_SUBMISSION_FILE_PATH
+            else:
+                file_path = settings.UPDOWN_SUBMISSION_FILE_PATH
+
+        return tools.save_df_to_csv(df, file_path)
