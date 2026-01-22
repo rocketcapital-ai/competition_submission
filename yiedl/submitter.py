@@ -154,8 +154,9 @@ class Submitter:
             verify_latest: bool = True
     ) -> str:
         """
-        Downloads and unzips the weekly dataset. First tries to retrieve from the server. If that fails, then
-        retrieves from IPFS.
+        Downloads and unzips the weekly dataset.
+        First tries to retrieve from the server.
+        If that fails, then retrieves from IPFS.
         @param destination_directory: (optional) Folder path in which to save and unzip the dataset.
             Defaults to `settings.DATASET_DIRECTORY`.
         @param filename: (optional) Filename to save the dataset zip file as. Defaults to
@@ -183,7 +184,10 @@ class Submitter:
         if challenge_number != cn_from_network:
             verify_latest = False
             retrieve_from_server = False
-            logger.info(f"Downloading old dataset for challenge: {challenge_number}. Retrieving from IPFS.")
+            logger.info(
+                "Downloading old dataset for challenge: %s. Retrieving from IPFS.",
+                challenge_number,
+            )
 
         else:
             phase = self._competition.getPhase(challenge_number)
@@ -207,16 +211,24 @@ class Submitter:
                     if verify_latest:
                         verify_status = tools.verify_weekly_dataset_is_latest(unzipped_dir)
                         if not verify_status:
-                            logger.info(f'Could not verify that weekly dataset is for '
-                                        f'challenge {challenge_number}, retrieving from IPFS.')
+                            logger.info(
+                                "Could not verify that weekly dataset is for challenge %s, retrieving from IPFS.",
+                                challenge_number,
+                            )
                             retrieve_from_server = False
                         else:
-                            logger.info(f'Successfully downloaded and verified weekly dataset for '
-                                        f'challenge {challenge_number} to {unzipped_dir}.')
+                            logger.info(
+                                "Successfully downloaded and verified weekly dataset for challenge %s to %s.",
+                                challenge_number,
+                                unzipped_dir,
+                            )
                             return unzipped_dir
                     else:
-                        logger.info(f'Successfully downloaded weekly dataset '
-                                    f'for challenge {challenge_number} to {unzipped_dir}.')
+                        logger.info(
+                            "Successfully downloaded weekly dataset for challenge %s to %s.",
+                            challenge_number,
+                            unzipped_dir,
+                        )
                         return unzipped_dir
             else:
                 retrieve_from_server = False
@@ -238,12 +250,19 @@ class Submitter:
             if verify_latest:
                 verify_status = tools.verify_weekly_dataset_is_latest(unzipped_dir)
                 if not verify_status:
-                    raise RuntimeError(f'Downloaded dataset for challenge {challenge_number} is not the latest.')
-                logger.info(f'Successfully downloaded and verified weekly dataset for '
-                            f'challenge {challenge_number} to {unzipped_dir}.')
+                    raise RuntimeError(f'Downloaded dataset for '
+                                       f'challenge {challenge_number} is not the latest.')
+                logger.info(
+                    "Successfully downloaded and verified weekly dataset for challenge %s to %s.",
+                    challenge_number,
+                    unzipped_dir,
+                )
             else:
-                logger.info(f'Successfully downloaded weekly dataset for '
-                            f'challenge {challenge_number} to {unzipped_dir}.')
+                logger.info(
+                    "Successfully downloaded weekly dataset for challenge %s to %s.",
+                    challenge_number,
+                    unzipped_dir,
+                )
             return unzipped_dir
 
     def get_dataset(self, destination_directory: str, challenge_number: int = None) -> str:

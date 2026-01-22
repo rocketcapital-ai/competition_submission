@@ -141,7 +141,10 @@ def get_avg_gas_price_in_gwei(mode=GasPriceMode.fast, retry_seconds: int = 3,
                     error_msg = f'Gas station response: {result}\nError: {e1}'
                 except Exception as e2:
                     error_msg = f'Unspecified error: {e2}'
-                logger.warning(f'Unable to compute gas price normally.\n{error_msg}\nTrying chain base fee..')
+                logger.warning(
+                    "Unable to compute gas price normally.\n%s\nTrying chain base fee..",
+                    error_msg,
+                )
             time.sleep(retry_seconds)
 
     # if all retries fail, we first base our estimate on the chain's base fee
@@ -395,7 +398,7 @@ def _download_and_unzip_from_server(url: str, local_filepath: str, show_progress
     retries = settings.RETRIES
     for attempt in range(retries):
         try:
-            with requests.get(url, stream=True) as response:
+            with requests.get(url, stream=True, timeout=settings.REQUESTS_TIMEOUT) as response:
                 response.raise_for_status()
                 total_size = int(response.headers.get("content-length", 0))  # 0 if unknown
                 chunk_size = settings.CHUNK_SIZE
@@ -424,13 +427,16 @@ def _download_and_unzip_from_server(url: str, local_filepath: str, show_progress
 
             logger.info("Download completed. Unzipping the dataset...")
             dest_path = unzip_dir(local_filepath)
-            logger.info(f"Dataset unzipped to {dest_path}.")
+            logger.info("Dataset unzipped to %s.", dest_path)
             return True
         except Exception:
             if attempt < retries - 1:
                 logger.info(
-                    f"Download from server failed (attempt {attempt + 1}/{retries}). "
-                    f"Retrying in {sleep_delay} seconds...")
+                    "Download from server failed (attempt %d/%d). Retrying in %s seconds...",
+                    attempt + 1,
+                    retries,
+                    sleep_delay,
+                )
                 time.sleep(sleep_delay)
             else:
                 logger.warning("Download from server failed after multiple attempts.")
@@ -451,8 +457,8 @@ def is_latest_sunday(latest_date_str: str) -> bool:
 
 def verify_weekly_dataset_is_latest(dataset_dir: str) -> bool:
     """
-    Verify if the weekly dataset is the latest by checking that the last date in the validation CSV is
-    the most recent Sunday.
+    Verify if the weekly dataset is the latest by checking that the last date
+        in the validation CSV is the most recent Sunday.
     :param dataset_dir: Path to the dataset directory.
     :return: True if the dataset is the latest, False otherwise.
     """
@@ -465,7 +471,7 @@ def verify_weekly_dataset_is_latest(dataset_dir: str) -> bool:
         latest_date_str = last_line.split(",")[0]
         return is_latest_sunday(latest_date_str)
     except Exception as e:
-        logger.warning(f"Failed to verify if dataset is latest: {e}")
+        logger.warning("Failed to verify if dataset is latest: %s", e)
         return False
 
 
@@ -527,7 +533,8 @@ def stream_and_unzip_from_ipfs(
     :param challenge: challenge number
     :param gateway: IPFS gateway URL
     :param pinata_access_token: (optional) Pinata access token for private gateways
-    :param unlimited_search: (optional) If true, will keep retrying until successful. Default is False.
+    :param unlimited_search: (optional) If true, will keep
+        retrying until successful. Default is False.
     :param verbose:(optional) If true, will print verbose error messages. Default is False.
     :return: Path to the unzipped directory if successful, None otherwise.
     """
@@ -547,8 +554,9 @@ def stream_and_unzip_from_ipfs(
     retries = 0
 
     logger.info(
-        f"Retrieving weekly dataset for challenge {challenge}. "
-        f"(Please do not unzip the file until the download is complete.)"
+        "Retrieving weekly dataset for challenge %s. "
+        "(Please do not unzip the file until the download is complete.)",
+        challenge,
     )
     logger.info("Download times may take up to an hour, depending on network conditions.")
 
@@ -595,7 +603,7 @@ def stream_and_unzip_from_ipfs(
                     downloaded = 0
                     mode = "wb"
                     continue
-                logger.info(f"Dataset saved and unzipped to {unzipped_dir}.")
+                logger.info("Dataset saved and unzipped to %s.", unzipped_dir)
                 return unzipped_dir
 
             with open(filepath, mode) as f, tqdm(
@@ -624,7 +632,7 @@ def stream_and_unzip_from_ipfs(
             except Exception as e:
                 raise RuntimeError(f"Downloaded file, but unzip failed: {e}") from e
 
-            logger.info(f"Dataset saved and unzipped to {unzipped_dir}.")
+            logger.info("Dataset saved and unzipped to %s.", unzipped_dir)
             return unzipped_dir
 
         except Exception as e:
@@ -644,7 +652,7 @@ def stream_and_unzip_from_ipfs(
 
             continue
 
-    logger.warning(f"Gateway {base} is unavailable. Please try again later.")
+    logger.warning("Gateway %s is unavailable. Please try again later.", base)
     return None
 
 
@@ -652,7 +660,7 @@ def remove_file(filepath: str) -> None:
     """Remove file if it exists. Raise if it exists but cannot be removed."""
     try:
         os.remove(filepath)
-        logger.info(f"Removed file {filepath}.")
+        logger.info("Removed file %s.", filepath)
     except FileNotFoundError:
         return
     except Exception as e:
@@ -682,8 +690,8 @@ def save_df_to_csv(df: pd.DataFrame, filepath: str) -> str | None:
         dirpath = os.path.dirname(filepath)
         os.makedirs(dirpath, exist_ok=True)
         df.to_csv(filepath, index=False)
-        logger.info(f"Dataframe saved to {filepath}.")
+        logger.info("Dataframe saved to %s.", filepath)
         return filepath
     except Exception as e:
-        logger.warning(f"Failed to save dataframe to {filepath}: {e}")
+        logger.warning("Failed to save dataframe to %s: %s", filepath, e)
         return None
