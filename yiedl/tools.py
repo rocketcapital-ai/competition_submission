@@ -3,11 +3,13 @@
 import datetime
 import os
 import logging
+import pandas as pd
 from dataclasses import dataclass
 import shutil
 import time
 from decimal import Decimal
 from typing import Callable
+from tqdm import tqdm
 
 import requests
 import base58
@@ -16,7 +18,7 @@ import web3
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
-from eth_account.account import LocalAccount
+from eth_account.account import LocalAccount, Account
 from web3.types import TxReceipt
 from yiedl import settings
 
@@ -24,6 +26,14 @@ logger = logging.getLogger(__name__)
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 ROOT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+
+
+@dataclass
+class CompetitionIds:
+    """competition IDs"""
+    UPDOWN = "UPDOWN"
+    NEUTRAL = "NEUTRAL"
+
 
 @dataclass
 class CompetitionParams:
@@ -291,11 +301,18 @@ def uint_to_decimal(uint_value: int, decimal_places=6) -> Decimal:
     return Decimal(f'{uint_value}e-{decimal_places}')
 
 
-def unzip_dir(zipped_file: str, extract_dest: str) -> str:
+def unzip_dir(zipped_file: str, extract_dest: str | None = None) -> str | None:
     """extract .zip archive to directory"""
-    shutil.unpack_archive(zipped_file, extract_dest)
-    logger.info('Data unzipped to %s.', extract_dest)
-    return extract_dest
+    try:
+        if extract_dest is None:
+            extract_dest = os.path.splitext(zipped_file)[0]
+        os.makedirs(extract_dest, exist_ok=True)
+        shutil.unpack_archive(zipped_file, extract_dest)
+        logger.info('Source file unzipped to %s.', extract_dest)
+        return extract_dest
+    except Exception as e:
+        logger.warning('Failed to unzip file %s. Error: %s', zipped_file, e)
+        return None
 
 
 def zip_file(file_path: str, dest=None) -> str:
@@ -303,3 +320,369 @@ def zip_file(file_path: str, dest=None) -> str:
     if dest is None:
         dest = file_path
     return shutil.make_archive(dest, 'zip', file_path)
+
+
+def download_weekly_yiedl_dataset(
+        local_filepath=None,
+        show_progress=True) -> bool:
+    """
+    Downloads the latest dataset from the Yiedl API.
+    :param local_filepath: (optional) Path to save the weekly dataset to.
+    :param show_progress: (optional) If true, shows the percentage of the download progress.
+    :return: True if download was successful, False otherwise.
+    """
+    if local_filepath is None:
+        local_filepath = settings.WEEKLY_DATASET_FILENAME
+    logger.info('Downloading weekly dataset from server..')
+    url = f"{settings.BASE_URL}?type={settings.WEEKLY_DATASET_TYPE}"
+    status = _download_and_unzip_from_server(url, local_filepath, show_progress)
+    return status
+
+
+def download_daily_yiedl_dataset(
+        local_filepath=None,
+        show_progress=True) -> bool:
+    """
+    Downloads the latest dataset from the Yiedl API.
+    :param local_filepath: (optional) Path to save the daily dataset to.
+    :param show_progress: (optional) If true, shows the percentage of the download progress.
+    :return: True if download was successful, False otherwise.
+    """
+    if local_filepath is None:
+        local_filepath = settings.DAILY_DATASET_FILENAME
+    logger.info('Downloading daily dataset from server..')
+    url = f"{settings.BASE_URL}?type={settings.DAILY_DATASET_TYPE}"
+    status = _download_and_unzip_from_server(url, local_filepath, show_progress)
+    return status
+
+
+def download_latest_yiedl_dataset(
+        local_filepath=None,
+        show_progress=True) -> bool:
+    """
+    Downloads the latest dataset from the Yiedl API.
+    :param local_filepath: (optional) Path to save the latest dataset to.
+    :param show_progress: (optional) If true, shows the percentage of the download progress.
+    :return: True if download was successful, False otherwise.
+    """
+    if local_filepath is None:
+        local_filepath = settings.LATEST_DATASET_FILENAME
+    logger.info('Downloading latest dataset from server..')
+    url = f"{settings.BASE_URL}?type={settings.LATEST_DATASET_TYPE}"
+    status = _download_and_unzip_from_server(url, local_filepath, show_progress)
+    return status
+
+
+def download_historical_yiedl_dataset(
+        local_filepath=None,
+        show_progress=True) -> bool:
+    """
+    Downloads the historical dataset from the Yiedl API.
+    :param local_filepath: (optional) Path to save the historical dataset to.
+    :param show_progress: (optional) If true, shows the percentage of the download progress.
+    :return: True if download was successful, False otherwise.
+    """
+    if local_filepath is None:
+        local_filepath = settings.HISTORICAL_DATASET_FILENAME
+    logger.info('Downloading historical dataset from server..')
+    url = f"{settings.BASE_URL}?type={settings.HISTORICAL_DATASET_TYPE}"
+    status = _download_and_unzip_from_server(url, local_filepath, show_progress)
+    return status
+
+
+def _download_and_unzip_from_server(url: str, local_filepath: str, show_progress: bool) -> bool:
+    sleep_delay = settings.SLEEP_DELAY_SECONDS
+    retries = settings.RETRIES
+    for attempt in range(retries):
+        try:
+            with requests.get(url, stream=True) as response:
+                response.raise_for_status()
+                total_size = int(response.headers.get("content-length", 0))  # 0 if unknown
+                chunk_size = settings.CHUNK_SIZE
+
+                with open(local_filepath, "wb") as file:
+                    if show_progress:
+                        # total=None lets tqdm handle unknown size nicely
+                        with tqdm(
+                                total=total_size or None,
+                                unit="B",
+                                unit_scale=True,
+                                unit_divisor=1024,
+                                desc="Download",
+                                leave=True,
+                        ) as pbar:
+                            for chunk in response.iter_content(chunk_size=chunk_size):
+                                if not chunk:
+                                    continue
+                                file.write(chunk)
+                                pbar.update(len(chunk))
+                    else:
+                        for chunk in response.iter_content(chunk_size=chunk_size):
+                            if not chunk:
+                                continue
+                            file.write(chunk)
+
+            logger.info("Download completed. Unzipping the dataset...")
+            dest_path = unzip_dir(local_filepath)
+            logger.info(f"Dataset unzipped to {dest_path}.")
+            return True
+        except Exception as e:
+            if attempt < retries - 1:
+                logger.info(
+                    f"Download from server failed (attempt {attempt + 1}/{retries}). Retrying in {sleep_delay} seconds...")
+                time.sleep(sleep_delay)
+            else:
+                logger.warning("Download from server failed after multiple attempts.")
+    return False
+
+
+def is_latest_sunday(latest_date_str: str) -> bool:
+    """
+    Check if latest date is the latest sunday.
+    :param latest_date_str: date string in format 'YYYY-MM-DD' eg. 2026-01-30
+    :return: True if latest date is the latest sunday, False otherwise
+    """
+    latest_date = datetime.datetime.strptime(latest_date_str, '%Y-%m-%d').date()
+    today = datetime.date.today()
+    last_sunday = today - datetime.timedelta(days=today.weekday() + 1)
+    return latest_date == last_sunday
+
+
+def verify_weekly_dataset_is_latest(dataset_dir: str) -> bool:
+    """
+    Verify if the weekly dataset is the latest by checking that the last date in the validation CSV is
+    the most recent Sunday.
+    :param dataset_dir: Path to the dataset directory.
+    :return: True if the dataset is the latest, False otherwise.
+    """
+    try:
+        validation_csv_path = os.path.join(dataset_dir, settings.YIEDL_VALIDATION_FILE_PATH)
+        last_line = _last_csv_record(validation_csv_path)
+        if not last_line:
+            logger.warning("Validation CSV is empty.")
+            return False
+        latest_date_str = last_line.split(",")[0]
+        return is_latest_sunday(latest_date_str)
+    except Exception as e:
+        logger.warning(f"Failed to verify if dataset is latest: {e}")
+        return False
+
+
+def _last_csv_record(path: str, chunk_size: int = 8192) -> str:
+    """Read the last non-empty line from a CSV file efficiently."""
+    with open(path, "rb") as f:
+        f.seek(0, os.SEEK_END)
+        end = f.tell()
+        if end == 0:
+            return ""
+
+        # Skip trailing newlines at EOF
+        pos = end
+        while pos > 0:
+            step = min(chunk_size, pos)
+            pos -= step
+            f.seek(pos)
+            buf = f.read(step)
+            i = len(buf) - 1
+            while i >= 0 and buf[i] in (10, 13):
+                end -= 1
+                i -= 1
+            if i >= 0:
+                break
+        if end <= 0:
+            return ""
+
+        # Find the previous '\n' before end
+        start = 0
+        pos = end
+        while pos > 0:
+            step = min(chunk_size, pos)
+            pos -= step
+            f.seek(pos)
+            buf = f.read(step)
+            j = buf.rfind(b"\n")
+            if j != -1:
+                start = pos + j + 1
+                break
+
+        f.seek(start)
+        line_bytes = f.read(end - start).rstrip(b"\r")
+        return line_bytes.decode("utf-8")
+
+
+def stream_and_unzip_from_ipfs(
+        cid: str,
+        filepath: str,
+        challenge: int,
+        gateway=None,
+        pinata_access_token=None,
+        unlimited_search: bool = False,
+        verbose: bool = False,
+) -> str | None:
+    """
+    Stream a file from IPFS gateway and unzip it.
+    :param cid: v0 CID of the file to download
+    :param filepath: path to save the downloaded file
+    :param challenge: challenge number
+    :param gateway: IPFS gateway URL
+    :param pinata_access_token: (optional) Pinata access token for private gateways
+    :param unlimited_search: (optional) If true, will keep retrying until successful. Default is False.
+    :param verbose:(optional) If true, will print verbose error messages. Default is False.
+    :return: Path to the unzipped directory if successful, None otherwise.
+    """
+    # Resolve gateway base URL safely
+    base = (gateway or settings.IPFS_GATEWAY).rstrip("/") + "/ipfs/"
+    url = base + cid
+
+    request_timeout = 300
+    chunk_size = 1024 * 128  # larger chunks = fewer syscalls
+    tries_per_gateway = 20
+    max_retries = tries_per_gateway
+
+    # Resume from existing partial file if present
+    downloaded = os.path.getsize(filepath) if os.path.exists(filepath) else 0
+    mode = "ab" if downloaded > 0 else "wb"
+
+    start_time = time.time()
+    retries = 0
+
+    logger.info(
+        f"Retrieving weekly dataset for challenge {challenge}. "
+        f"(Please do not unzip the file until the download is complete.)"
+    )
+    logger.info("Download times may take up to an hour, depending on network conditions.")
+
+    while True:
+        if not unlimited_search and retries >= max_retries:
+            break
+
+        try:
+            headers = {}
+            if downloaded > 0:
+                headers["Range"] = f"bytes={downloaded}-"
+            if pinata_access_token is not None:
+                headers["x-pinata-gateway-token"] = pinata_access_token
+
+            r = requests.get(url, timeout=request_timeout, stream=True, headers=headers)
+            r.raise_for_status()
+
+            if downloaded > 0 and r.status_code != 206:
+                raise RuntimeError("Server did not honor Range request; refusing to append to avoid corruption.")
+
+            actual_total_size = None
+            cr = r.headers.get("Content-Range")
+            if cr and "/" in cr:
+                try:
+                    actual_total_size = int(cr.split("/")[-1])
+                except ValueError:
+                    actual_total_size = None
+
+            if actual_total_size is None:
+                cl = r.headers.get("Content-Length")
+                if cl is None:
+                    raise RuntimeError("Missing Content-Length and Content-Range; cannot determine download size.")
+                remaining = int(cl)
+                actual_total_size = downloaded + remaining
+
+            # If file already complete, skip download and unzip
+            if downloaded >= actual_total_size:
+                logger.info("File already fully downloaded. Unzipping...")
+                unzipped_dir = unzip_dir(filepath)
+                if unzipped_dir is None:
+                    remove_file(filepath)
+                    downloaded = 0
+                    mode = "wb"
+                    continue
+                else:
+                    logger.info(f"Dataset saved and unzipped to {unzipped_dir}.")
+                    return unzipped_dir
+
+            with open(filepath, mode) as f, tqdm(
+                    total=actual_total_size,
+                    initial=downloaded,
+                    unit="B",
+                    unit_scale=True,
+                    unit_divisor=1024,
+                    desc="Download",
+                    leave=True,
+            ) as pbar:
+                for chunk in r.iter_content(chunk_size=chunk_size):
+                    if not chunk:
+                        continue
+                    f.write(chunk)
+                    n = len(chunk)
+                    downloaded += n
+                    pbar.update(n)
+
+            # Verify completion
+            if downloaded < actual_total_size:
+                raise RuntimeError("Download halted before completion. Reconnecting..")
+            logger.info("Download complete. Unzipping...")
+            try:
+                unzipped_dir = unzip_dir(filepath)
+            except Exception as e:
+                raise RuntimeError(f"Downloaded file, but unzip failed: {e}") from e
+
+            logger.info(f"Dataset saved and unzipped to {unzipped_dir}.")
+            return unzipped_dir
+
+        except Exception as e:
+            retries += 1
+            print("\r", end="")
+            if verbose:
+                print(f"Error: {e}")
+            else:
+                print("Retrying download..", end="")
+
+            if os.path.exists(filepath):
+                downloaded = os.path.getsize(filepath)
+                mode = "ab" if downloaded > 0 else "wb"
+            else:
+                downloaded = 0
+                mode = "wb"
+
+            continue
+
+    logger.warning(f"Gateway {base} is unavailable. Please try again later.")
+    return None
+
+
+def remove_file(filepath: str) -> None:
+    """Remove file if it exists. Raise if it exists but cannot be removed."""
+    try:
+        os.remove(filepath)
+        logger.info(f"Removed file {filepath}.")
+    except FileNotFoundError:
+        return
+    except Exception as e:
+        raise RuntimeError(f"Failed to remove file {filepath}: {e}") from e
+
+
+def get_account_address(private_key: str) -> str:
+    """
+    @param private_key: Private key of the account.
+    @returns: Address of the account associated with the private key.
+    """
+    account = Account.from_key(private_key)
+    return account.address
+
+
+def save_df_to_csv(df: pd.DataFrame, filepath: str) -> str | None:
+    """
+    Save dataframe to CSV file. Create directories recursively if they do not exist.
+    :param df: Pandas dataframe to save.
+    :param filepath: Full filepath to save to.
+    :return: Filepath if successful, None otherwise.
+    """
+    if not filepath.endswith('.csv'):
+        filepath += '.csv'
+
+    try:
+        dirpath = os.path.dirname(filepath)
+        os.makedirs(dirpath, exist_ok=True)
+        df.to_csv(filepath, index=False)
+        logger.info(f"Dataframe saved to {filepath}.")
+        return filepath
+    except Exception as e:
+        logger.warning(f"Failed to save dataframe to {filepath}: {e}")
+        return None
