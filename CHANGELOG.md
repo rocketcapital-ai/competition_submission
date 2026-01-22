@@ -21,3 +21,7 @@
 ## [0.2.2] - 2026-01-14
 ### Changed
 - Allow access to the `Delegate` module.
+
+## [0.2.3] - 2026-01-22
+### Added
+- Support for downloading weekly datasets.
