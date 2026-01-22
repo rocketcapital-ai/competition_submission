@@ -3,7 +3,6 @@
 import datetime
 import os
 import logging
-import pandas as pd
 from dataclasses import dataclass
 import shutil
 import time
@@ -14,6 +13,7 @@ from tqdm import tqdm
 import requests
 import base58
 import web3
+import pandas as pd
 
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
@@ -426,10 +426,11 @@ def _download_and_unzip_from_server(url: str, local_filepath: str, show_progress
             dest_path = unzip_dir(local_filepath)
             logger.info(f"Dataset unzipped to {dest_path}.")
             return True
-        except Exception as e:
+        except Exception:
             if attempt < retries - 1:
                 logger.info(
-                    f"Download from server failed (attempt {attempt + 1}/{retries}). Retrying in {sleep_delay} seconds...")
+                    f"Download from server failed (attempt {attempt + 1}/{retries}). "
+                    f"Retrying in {sleep_delay} seconds...")
                 time.sleep(sleep_delay)
             else:
                 logger.warning("Download from server failed after multiple attempts.")
@@ -543,7 +544,6 @@ def stream_and_unzip_from_ipfs(
     downloaded = os.path.getsize(filepath) if os.path.exists(filepath) else 0
     mode = "ab" if downloaded > 0 else "wb"
 
-    start_time = time.time()
     retries = 0
 
     logger.info(
@@ -567,7 +567,8 @@ def stream_and_unzip_from_ipfs(
             r.raise_for_status()
 
             if downloaded > 0 and r.status_code != 206:
-                raise RuntimeError("Server did not honor Range request; refusing to append to avoid corruption.")
+                raise RuntimeError("Server did not honor Range request; "
+                                   "refusing to append to avoid corruption.")
 
             actual_total_size = None
             cr = r.headers.get("Content-Range")
@@ -580,7 +581,8 @@ def stream_and_unzip_from_ipfs(
             if actual_total_size is None:
                 cl = r.headers.get("Content-Length")
                 if cl is None:
-                    raise RuntimeError("Missing Content-Length and Content-Range; cannot determine download size.")
+                    raise RuntimeError("Missing Content-Length and Content-Range;"
+                                       "cannot determine download size.")
                 remaining = int(cl)
                 actual_total_size = downloaded + remaining
 
@@ -593,9 +595,8 @@ def stream_and_unzip_from_ipfs(
                     downloaded = 0
                     mode = "wb"
                     continue
-                else:
-                    logger.info(f"Dataset saved and unzipped to {unzipped_dir}.")
-                    return unzipped_dir
+                logger.info(f"Dataset saved and unzipped to {unzipped_dir}.")
+                return unzipped_dir
 
             with open(filepath, mode) as f, tqdm(
                     total=actual_total_size,

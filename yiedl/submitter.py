@@ -161,12 +161,13 @@ class Submitter:
         @param filename: (optional) Filename to save the dataset zip file as. Defaults to
             `settings.WEEKLY_DATASET_FILENAME`.
         @param challenge_number: (optional) Challenge of which corresponding dataset should
-            be retrieved. Defaults to the current challenge. Note that datasets from older challenges can only be
-            retrieved from IPFS.
-        @param ipfs_only: (optional) Whether to only retrieve the dataset from IPFS, skipping the server download.
-        @param verify_latest: (optional) Whether to verify that the downloaded file is for the latest week and raise an
-            error otherwise. Defaults to True. If downloading an old dataset from a previous challenge, this is
-            automatically set to False.
+            be retrieved. Defaults to the current challenge.
+            Note that datasets from older challenges can only be retrieved from IPFS.
+        @param ipfs_only: (optional) Whether to only retrieve the dataset from IPFS,
+            skipping the server download.
+        @param verify_latest: (optional) Whether to verify that the downloaded file is for
+            the latest week and raise an error otherwise. Defaults to True.
+            If downloading an old dataset from a previous challenge, this is automatically set to False.
         @return: Path of the unzipped dataset directory.
         """
         if destination_directory is None:
@@ -187,7 +188,7 @@ class Submitter:
         else:
             phase = self._competition.getPhase(challenge_number)
             if phase != 1:
-                logger.warning(f"The challenge is currently closed. You may be downloading an old dataset.")
+                logger.warning("The challenge is currently closed. You may be downloading an old dataset.")
 
         dataset_hash = self._competition.getDatasetHash(challenge_number).hex()
         dataset_cid = tools.hash_to_cid(dataset_hash)
@@ -214,8 +215,8 @@ class Submitter:
                                         f'challenge {challenge_number} to {unzipped_dir}.')
                             return unzipped_dir
                     else:
-                        logger.info(f'Successfully downloaded weekly dataset for challenge {challenge_number} to '
-                                    f'{unzipped_dir}.')
+                        logger.info(f'Successfully downloaded weekly dataset '
+                                    f'for challenge {challenge_number} to {unzipped_dir}.')
                         return unzipped_dir
             else:
                 retrieve_from_server = False
@@ -231,8 +232,8 @@ class Submitter:
             )
 
             if unzipped_dir is None:
-                raise RuntimeError(f'Failed to unzip file at {destination_file}. Please check the file or try the '
-                                   f'download again.')
+                raise RuntimeError(f'Failed to unzip file at {destination_file}. '
+                                   f'Please check the file or try the download again.')
 
             if verify_latest:
                 verify_status = tools.verify_weekly_dataset_is_latest(unzipped_dir)
@@ -601,4 +602,3 @@ class Submitter:
                 file_path = settings.UPDOWN_SUBMISSION_FILE_PATH
 
         return tools.save_df_to_csv(df, file_path)
-
