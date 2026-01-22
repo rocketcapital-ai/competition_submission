@@ -1,6 +1,6 @@
 [project]
 name = "yiedl-ai"
-version = "0.2.2"
+version = "0.2.3"
 description = "Programmaticaly interact with the yiedl machine learning competition"
 requires-python = ">=3.11"
 readme = "README.md"
