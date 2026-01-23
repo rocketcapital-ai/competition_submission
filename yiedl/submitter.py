@@ -145,6 +145,53 @@ class Submitter:
             return None
         return cid
 
+    @staticmethod
+    def download_and_unzip_daily_dataset(
+            destination_directory: str = None,
+            filename: str = None,
+            verify_latest: bool = True
+    ) -> str:
+        """
+        Downloads and unzips the daily dataset.
+        @param destination_directory: (optional) Folder path in which to save and unzip the dataset.
+            Defaults to `settings.DATASET_DIRECTORY`.
+        @param filename: (optional) Filename to save the dataset zip file as. Defaults to
+            `settings.DAILY_DATASET_FILENAME`.
+        @param verify_latest: (optional) Whether to verify that the downloaded file is for
+            the latest day and raise an error otherwise. Defaults to True.
+        @return: Path of the unzipped dataset directory.
+        """
+        if destination_directory is None:
+            destination_directory = settings.DOWNLOADED_DATASET_DIRECTORY
+        if filename is None:
+            filename = settings.DAILY_DATASET_FILENAME
+        os.makedirs(destination_directory, exist_ok=True)
+        destination_file = os.path.join(destination_directory, filename)
+        status = tools.download_daily_yiedl_dataset(destination_file)
+        if status:
+            unzipped_dir = tools.unzip_dir(destination_file)
+            if unzipped_dir is None:
+                raise RuntimeError("Unzip failed for daily dataset download.")
+            else:
+                if verify_latest:
+                    verify_status = tools.verify_daily_dataset_is_latest(unzipped_dir)
+                    if not verify_status:
+                        raise RuntimeError("Downloaded daily dataset is not the latest.")
+                    else:
+                        logger.info(
+                            "Successfully downloaded and verified daily dataset to %s.",
+                            unzipped_dir,
+                        )
+                        return unzipped_dir
+                else:
+                    logger.info(
+                        "Successfully downloaded daily dataset to %s.",
+                        unzipped_dir,
+                    )
+                    return unzipped_dir
+        else:
+            raise RuntimeError('Failed to download daily dataset from server.')
+
     def download_and_unzip_weekly_dataset(
             self,
             destination_directory: str = None,

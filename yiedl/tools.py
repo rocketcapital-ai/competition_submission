@@ -475,6 +475,50 @@ def verify_weekly_dataset_is_latest(dataset_dir: str) -> bool:
         return False
 
 
+def verify_daily_dataset_is_latest(dataset_dir: str) -> bool:
+    """
+    Verify if the daily dataset is the latest by checking that the latest date
+    in the validation parquet is the most recent Sunday.
+    :param dataset_dir: Path to the dataset directory.
+    :return: True if the dataset is the latest, False otherwise.
+    """
+    try:
+        validation_parquet_path = os.path.join(dataset_dir, settings.YIEDL_VALIDATION_FILE_PATH)
+
+        if validation_parquet_path.endswith(".csv"):
+            validation_parquet_path = validation_parquet_path[:-4] + ".parquet"
+
+        df = pd.read_parquet(validation_parquet_path)
+
+        if df.empty:
+            logger.warning("Validation parquet is empty.")
+            return False
+
+        if "date" in df.columns:
+            dates = df["date"]
+        elif getattr(df.index, "name", None) == "date":
+            dates = df.index
+        else:
+            logger.warning(
+                "No 'date' column or 'date' index found. columns=%s index_name=%s",
+                list(df.columns),
+                getattr(df.index, "name", None),
+            )
+            return False
+
+        latest = pd.to_datetime(dates, errors="coerce").max()
+        if pd.isna(latest):
+            logger.warning("Could not parse any valid dates from parquet.")
+            return False
+
+        latest_date_str = latest.date().isoformat()
+        return is_latest_sunday(latest_date_str)
+
+    except Exception as e:
+        logger.warning("Failed to verify if dataset is latest: %s", e)
+        return False
+
+
 def _last_csv_record(path: str, chunk_size: int = 8192) -> str:
     """Read the last non-empty line from a CSV file efficiently."""
     with open(path, "rb") as f:
