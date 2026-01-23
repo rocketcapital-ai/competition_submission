@@ -25,3 +25,7 @@
 ## [0.2.3] - 2026-01-22
 ### Added
 - Support for downloading weekly datasets.
+
+## [0.2.4] - 2026-01-22
+### Added
+- Support for downloading daily datasets.
